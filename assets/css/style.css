@@ -321,7 +321,7 @@ main {
   transition: var(--transition-2);
 }
 
-.sidebar.active { max-height: 405px; }
+.sidebar.active { max-height: 480px; }
 
 .sidebar-info {
   position: relative;
@@ -547,6 +547,10 @@ main {
 .service-content-box { text-align: center; }
 
 .service-item-title { margin-bottom: 7px; }
+
+/* 标题里有专有名词和介词（at / of），不做逐词首字母大写 */
+.service-item-title,
+.timeline-item-title { text-transform: none; }
 
 .service-item-text {
   color: var(--light-gray);
@@ -836,10 +840,19 @@ main {
 
 .skills-title { margin-bottom: 20px; }
 
-.skills-list { padding: 20px; }
+.skills-list { padding: 20px; cursor: default; }
 
 
 .skills-item:not(:last-child) { margin-bottom: 15px; }
+
+.skills-item .h5 { margin-bottom: 6px; }
+
+.skills-text {
+  color: var(--light-gray);
+  font-size: var(--fs-6);
+  font-weight: var(--fw-300);
+  line-height: 1.6;
+}
 
 .skill .title-wrapper {
   display: flex;
@@ -1333,7 +1346,7 @@ textarea.form-input::-webkit-resizer { display: none; }
     margin-bottom: 30px;
   }
 
-  .sidebar.active { max-height: 584px; }
+  .sidebar.active { max-height: 680px; }
 
   .sidebar-info { gap: 25px; }
 
