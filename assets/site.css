@@ -200,19 +200,18 @@ html:not(.js) .lang { display: none; }
 .diagram .grp { transition: opacity .9s var(--ease); }
 
 /* first paint: lines draw themselves, then labels and fills arrive */
-.js .backdrop .draw { stroke-dasharray: 1; stroke-dashoffset: 1; }
-.js.drawn .backdrop .draw { stroke-dashoffset: 0; }
-.js .backdrop :is(.lbl, .dash, .agent) { opacity: 0; }
-.js .backdrop .slot.busy { fill: transparent; }
-.js.drawn .backdrop :is(.lbl, .dash, .agent) { opacity: 1; transition: opacity 1.2s var(--ease) .9s, fill .9s var(--ease); }
-.js.drawn .backdrop .slot.busy { fill: rgba(142, 142, 147, .12); transition: fill 1.2s var(--ease) 1s; }
-.js.settled .backdrop .draw { stroke-dasharray: none; }
+.js :is(.backdrop, .hero-mini) .draw { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.js.drawn :is(.backdrop, .hero-mini) .draw { stroke-dashoffset: 0; }
+.js :is(.backdrop, .hero-mini) :is(.lbl, .dash, .agent) { opacity: 0; }
+.js :is(.backdrop, .hero-mini) .slot.busy { fill: transparent; }
+.js.drawn :is(.backdrop, .hero-mini) :is(.lbl, .dash, .agent) { opacity: 1; transition: opacity 1.2s var(--ease) .9s, fill .9s var(--ease); }
+.js.drawn :is(.backdrop, .hero-mini) .slot.busy { fill: rgba(142, 142, 147, .12); transition: fill 1.2s var(--ease) 1s, stroke-dashoffset 1.6s var(--ease-out) var(--dd, 0s); }
+.js.settled :is(.backdrop, .hero-mini) .draw { stroke-dasharray: none; }
 
 /* scene states of the backdrop drawing */
-[data-scene="about"] .backdrop .diagram { opacity: 0; transform: translateY(-47%) scale(.94); }
+[data-scene="about"] .backdrop .diagram,
 [data-scene="exp"] .backdrop .diagram,
-[data-scene="edu"] .backdrop .diagram,
-[data-scene="contact"] .backdrop .diagram { opacity: .07; transform: translateY(-47%) scale(.94); }
+[data-scene="contact"] .backdrop .diagram { opacity: 0; transform: translateY(-47%) scale(.94); }
 
 [data-scene^="w"] .backdrop .grp { opacity: .32; }
 [data-scene="w1"] .backdrop .g-nac,
@@ -230,12 +229,13 @@ html:not(.js) .lang { display: none; }
 [data-scene="w2"] .backdrop .slot.busy { fill: rgba(63, 91, 208, .1); }
 
 /* per-chapter drawing inside the text flow (narrow screens only, built by JS) */
-.mini { display: none; }
-.mini .diagram { display: block; width: 100%; height: auto; overflow: visible; }
+.mini { display: none; overflow: hidden; }
+.mini .diagram { display: block; width: 100%; height: 100%; overflow: hidden; }
 .mini :is(.n, .e) { vector-effect: non-scaling-stroke; stroke-width: 1.1; }
-.mini .draw { stroke-dasharray: none !important; stroke-dashoffset: 0 !important; }
-.mini .lbl { font-size: 15px; }
-.mini .grp { opacity: .28; }
+.mini:not(.hero-mini) .draw { stroke-dasharray: none !important; stroke-dashoffset: 0 !important; }
+.mini .lbl { font-size: var(--lbl, 15px); }
+.mini .lbl.cap { font-size: calc(var(--lbl, 15px) * .92); }
+.mini:not(.hero-mini) .grp { opacity: .12; }
 .mini[data-hl="w1"] .g-nac, .mini[data-hl="w2"] .g-sbx, .mini[data-hl="w3"] .g-fw, .mini[data-hl="w4"] .g-team { opacity: 1; }
 .mini[data-hl="w1"] .g-nac :is(.n, .e), .mini[data-hl="w2"] .g-sbx :is(.n, .e),
 .mini[data-hl="w3"] .g-fw :is(.n, .e), .mini[data-hl="w4"] .g-team :is(.n, .e) { stroke: var(--accent); }
@@ -327,7 +327,9 @@ html[data-lang="zh"] .about .big { letter-spacing: .01em; line-height: 1.6; }
 }
 html[data-lang="zh"] .work li { line-height: 1.75; }
 
-.exp .col, .edu .col { max-width: min(42rem, 46vw); }
+.exp .col.cv { max-width: min(76rem, 100%); display: grid; grid-template-columns: 1.1fr 1fr; column-gap: 6vw; align-items: start; }
+.exp .row { grid-template-columns: 10.5rem minmax(0, 1fr); }
+.row .when { white-space: nowrap; }
 .sec { font-size: clamp(34px, 3.6vw, 48px); line-height: 1.08; font-weight: 600; letter-spacing: -.03em; }
 html[data-lang="zh"] .sec { letter-spacing: .02em; }
 .sec + .rows { margin-top: 34px; }
@@ -374,19 +376,18 @@ html.pinned .layer {
   min-height: 0;
   padding: 120px var(--gutter) 64px;
   opacity: 0;
+  pointer-events: none;
+  transition: opacity .45s var(--ease);
+}
+html.pinned .scene.leaving .layer {
   filter: blur(6px);
   transform: translateY(var(--out, -18px));
-  pointer-events: none;
   transition: opacity .45s var(--ease), filter .45s var(--ease), transform .6s var(--ease);
 }
 html.pinned[data-dir="up"] .layer { --out: 18px; }
-html.pinned .scene.is-active .layer {
-  opacity: 1;
-  filter: none;
-  transform: none;
-  transition: opacity 0s linear .2s, filter 0s linear .2s, transform 0s linear .2s;
-}
-html.pinned .scene.is-active .layer > * { pointer-events: auto; }
+html.pinned .scene.is-active .layer { opacity: 1; transition: opacity 0s linear .2s; }
+html.pinned .scene.is-live .layer > * { pointer-events: auto; }
+.mode-switch .layer, .mode-switch .backdrop .diagram { transition: none !important; }
 html.pinned .veil { display: none; }
 
 /* ---------- Language change: blur cross-fade ---------- */
@@ -405,31 +406,43 @@ main, .nav .links, .chapter-t { transition: opacity .3s var(--ease), filter .3s 
 /* ---------- Narrow screens: flowing layout, one drawing per chapter ---------- */
 @media (max-width: 1023px) {
   .col, .about .col, .exp .col, .edu .col { max-width: 36rem; }
-  .backdrop .diagram {
-    right: auto; left: 50%; top: 88px;
-    width: min(122vw, 760px);
-    max-height: none;
-    transform: translateX(-50%);
-    transform-origin: 50% 20%;
-    opacity: .8;
-  }
-  html:not([data-scene="hero"]) .backdrop .diagram { opacity: 0; transform: translateX(-50%) scale(.96); }
-  .hero .layer { align-content: end; padding-bottom: 12vh; }
+  .backdrop { display: none; }
+  .hero .layer { padding-top: 88px; padding-bottom: 8vh; }
+  .js .hero-mini { display: block; aspect-ratio: 720 / 404; max-height: max(0px, calc(100svh - 520px)); margin: 0 0 28px; }
   .scene:not(.hero) .layer { min-height: 0; padding: 104px var(--gutter) 56px; }
-  .contact .layer { min-height: 100vh; min-height: 100svh; align-content: center; }
+  .scene.contact:not(.hero) .layer { min-height: 100vh; min-height: 100svh; align-content: center; }
+  .exp .col.cv { grid-template-columns: 1fr; row-gap: 64px; }
   .about .layer { grid-template-columns: 1fr; }
   .portrait { justify-self: start; order: -1; width: 132px; margin-bottom: 30px; }
   .portrait img { border-radius: 22px; }
-  .js .mini { display: block; margin: 0 0 28px; }
+  .js .mini:not(.hero-mini) { display: block; margin: 0 0 28px; aspect-ratio: 16 / 10; max-height: 32svh; max-width: 100%; }
 }
-@media (max-width: 1023px) and (max-height: 600px) {
-  .backdrop .diagram { opacity: .12; }
+@media (max-width: 1023px) and (max-height: 500px) {
+  .js .mini:not(.hero-mini) { display: none; }
 }
+
+/* short laptop screens: keep the scene-by-scene layout by tightening it */
+@media (min-width: 1024px) and (max-height: 760px) {
+  html.pinned .layer { padding: 96px var(--gutter) 40px; }
+  .work h3 { font-size: clamp(32px, 3.4vw, 44px); }
+  .work .line { margin-top: 10px; }
+  .work ul { margin-top: 22px; gap: 10px; }
+  .work li { font-size: 16px; line-height: 1.5; }
+  .meta { margin-bottom: 10px; }
+  .hero .lede { margin-top: 28px; }
+  .about .big { margin-bottom: 20px; }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .col { max-width: 42vw; }
+  .work li { font-size: 16px; line-height: 1.5; }
+  .backdrop .diagram { width: 52vw; right: 1vw; top: 52%; }
+}
+html[data-lang="zh"] .links a { padding-left: 16px; padding-right: 16px; }
 
 @media (max-width: 720px) {
   body { font-size: 16px; }
   .nav { width: calc(100% - 32px); justify-content: space-between; }
-  .js .menu { display: block; order: 3; }
+  .js .menu { display: block; }
   .js .nav .links {
     position: absolute; top: calc(100% + 8px); left: 0; right: 0;
     flex-direction: column; align-items: stretch; gap: 0;
@@ -450,7 +463,7 @@ main, .nav .links, .chapter-t { transition: opacity .3s var(--ease), filter .3s 
   .lang::before { display: none; }
   .chapter { top: 64px; }
   .veil { height: 100px; }
-  .row { grid-template-columns: 1fr; row-gap: 2px; }
+  .row, .exp .row { grid-template-columns: 1fr; row-gap: 2px; }
   .row .when { grid-row: auto; font-size: 14px; }
   .foot { bottom: 22px; }
 }
@@ -473,4 +486,7 @@ main, .nav .links, .chapter-t { transition: opacity .3s var(--ease), filter .3s 
   .js .scene .r { opacity: 1 !important; filter: none !important; transform: none !important; }
   .col, .about .col, .exp .col, .edu .col { max-width: none; }
   .foot { position: static; margin-top: 24px; }
+  h1, h2, h3, .meta { break-after: avoid; }
+  .row, li, .block { break-inside: avoid; }
+  .exp .col.cv { display: block; }
 }

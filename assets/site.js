@@ -10,14 +10,23 @@
   const chapterT = chapter.querySelector('.chapter-t');
   const drawing = document.querySelector('.backdrop .diagram');
   const rmQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const shortQuery = window.matchMedia('(max-height: 760px)');
   const EASE = 'cubic-bezier(.16, 1, .3, 1)';
   const GROUP = { w1: 'g-nac', w2: 'g-sbx', w3: 'g-fw', w4: 'g-team' };
-  // viewBox crops of the drawing, one per chapter, for narrow screens
-  const CROPS = { w1: '-8 150 470 240', w2: '296 128 358 336', w3: '470 128 440 262', w4: '14 516 684 196' };
+  // viewBox crops of the drawing for narrow screens: [viewBox, smallest label size on screen in px]
+  const CROPS = {
+    hero: ['120 76 720 404', 10],
+    w1: ['-8 122 470 294', 12],
+    w2: ['250 128 528 330', 12],
+    w3: ['590 180 330 206', 12],
+    w4: ['150 390 560 350', 12],
+  };
 
   let reduced = rmQuery.matches;
-  let pinned = false;
+  let pinned = root.classList.contains('pinned');
   let active = null;
+
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
   const store = {
     get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
@@ -26,22 +35,33 @@
   const canAnimate = () => !reduced && typeof Element.prototype.animate === 'function';
   const lang = () => (root.getAttribute('data-lang') === 'zh' ? 'zh' : 'en');
 
-  /* ---------- Per-chapter drawings (shown only on narrow screens) ---------- */
+  /* ---------- Narrow screens: the hero and each chapter carry their own crop of the drawing ---------- */
+  const minis = [];
   if (drawing) {
     scenes.forEach((s) => {
       const crop = CROPS[s.dataset.scene];
       if (!crop) return;
       const box = document.createElement('div');
-      box.className = 'mini r';
+      box.className = s.dataset.scene === 'hero' ? 'mini hero-mini' : 'mini r';
       box.dataset.hl = s.dataset.scene;
       box.setAttribute('aria-hidden', 'true');
       const svg = drawing.cloneNode(true);
-      svg.setAttribute('viewBox', crop);
+      svg.setAttribute('viewBox', crop[0]);
       box.appendChild(svg);
       const col = s.querySelector('.col');
       col.insertBefore(box, col.firstChild);
+      minis.push({ box, svg, width: parseFloat(crop[0].split(' ')[2]), px: crop[1] });
     });
   }
+  function sizeMiniLabels() {
+    minis.forEach((m) => {
+      const w = m.svg.getBoundingClientRect().width;
+      if (!w) return;
+      const scale = w / m.width;
+      m.svg.style.setProperty('--lbl', Math.max(13, m.px / scale).toFixed(1) + 'px');
+    });
+  }
+
   const lines = Array.from(document.querySelectorAll('.scene .r'));
   lines.forEach((el) => { el._scene = el.closest('.scene'); });
 
@@ -111,7 +131,7 @@
     swapTimer = window.setTimeout(() => { paintChapter(); chapter.classList.remove('swap'); }, 260);
   }
 
-  /* ---------- Highlighted part of the drawing redraws itself once per chapter ---------- */
+  /* ---------- The highlighted part of the drawing redraws itself once per chapter ---------- */
   function redraw(scene) {
     const g = GROUP[scene.dataset.scene];
     if (!g || !drawing || !canAnimate() || !root.classList.contains('settled')) return;
@@ -128,6 +148,12 @@
   }
 
   /* ---------- Current scene ---------- */
+  const timers = new WeakMap();
+  function later(scene, fn, ms) {
+    window.clearTimeout(timers.get(scene));
+    timers.set(scene, window.setTimeout(fn, ms));
+  }
+
   function setScene(scene, instant) {
     if (scene === active) return;
     const prev = active;
@@ -141,15 +167,30 @@
       else a.removeAttribute('aria-current');
     });
     if (pinned) {
-      if (prev) prev.classList.remove('is-active');
+      if (prev) {
+        prev.classList.remove('is-active', 'is-live');
+        if (!instant) {
+          prev.classList.add('leaving');
+          later(prev, () => prev.classList.remove('leaving'), 650);
+        }
+      }
+      scene.classList.remove('leaving');
       scene.classList.add('is-active');
+      if (instant) scene.classList.add('is-live');
+      else later(scene, () => { if (scene === active) scene.classList.add('is-live'); }, 220);
       if (!instant) enter(scene, dir, 220);
     }
     if (!instant && prev) redraw(scene);
     swapChapter(prev, instant);
   }
 
+  // a scene chosen by a click or a deep link is kept until the visitor scrolls
+  let held = null;
   function currentScene() {
+    if (held && Math.abs(window.scrollY - held.y) < 4) return held.scene;
+    held = null;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    if (window.scrollY >= max - 2) return scenes[scenes.length - 1];
     const probe = window.innerHeight * (pinned ? 0.5 : 0.55);
     let cur = scenes[0];
     for (const s of scenes) {
@@ -160,6 +201,7 @@
 
   function scrollToScene(scene) {
     window.scrollTo({ top: scene.getBoundingClientRect().top + window.scrollY, behavior: 'instant' });
+    held = { scene, y: window.scrollY };
   }
 
   /* ---------- Flowing layout: text passing under the nav softens and fades ---------- */
@@ -188,8 +230,10 @@
   }
 
   let ticking = false;
+  let resizing = false;
   function frame() {
     ticking = false;
+    if (resizing) return;
     setScene(currentScene(), false);
     exitFade();
   }
@@ -198,10 +242,44 @@
   }
   window.addEventListener('scroll', requestFrame, { passive: true });
 
+  /* ---------- Pinned layout: one gesture or key press moves exactly one scene ---------- */
+  function step(delta) {
+    const i = Math.max(0, Math.min(scenes.length - 1, scenes.indexOf(active) + delta));
+    const s = scenes[i];
+    if (s === active) return;
+    scrollToScene(s);
+    setScene(s, false);
+  }
+  let lastWheel = 0;
+  let gestureUsed = false;
+  window.addEventListener('wheel', (ev) => {
+    if (!pinned || ev.ctrlKey || Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) return;
+    ev.preventDefault();
+    const now = window.performance.now();
+    if (now - lastWheel > 200) gestureUsed = false; // a pause starts a new gesture; momentum never pauses
+    lastWheel = now;
+    if (gestureUsed || Math.abs(ev.deltaY) < 4) return;
+    gestureUsed = true;
+    step(ev.deltaY > 0 ? 1 : -1);
+  }, { passive: false });
+  document.addEventListener('keydown', (ev) => {
+    if (!pinned || ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+    const t = ev.target;
+    if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
+    const onControl = t.closest && t.closest('button, a, summary');
+    let d = 0;
+    if (ev.key === 'PageDown' || ev.key === 'ArrowDown') d = 1;
+    else if (ev.key === 'PageUp' || ev.key === 'ArrowUp') d = -1;
+    else if (ev.key === ' ' && !onControl) d = ev.shiftKey ? -1 : 1;
+    if (!d) return;
+    ev.preventDefault();
+    step(d);
+  });
+
   /* ---------- Layout mode: pin scenes when every scene fits on one screen ---------- */
   function fitsPinned() {
-    if (reduced || window.innerWidth < 1024 || window.innerHeight < 620) return false;
-    const room = window.innerHeight - 120 - 64;
+    if (reduced || window.innerWidth < 1024 || window.innerHeight < 560) return false;
+    const room = window.innerHeight - (shortQuery.matches ? 136 : 184);
     return scenes.every((s) => {
       let h = 0;
       for (const c of s.querySelector('.layer').children) {
@@ -213,21 +291,34 @@
   }
   function setMode() {
     const want = fitsPinned();
-    if (want === pinned) return;
-    pinned = want;
-    root.classList.toggle('pinned', pinned);
-    scenes.forEach((s) => s.classList.remove('is-active'));
-    if (pinned) scenes.forEach((s) => s.classList.add('is-in'));
-    if (active) {
-      scrollToScene(active);
-      if (pinned) active.classList.add('is-active');
+    if (want !== pinned) {
+      // switch without animating every layer between the two layouts
+      root.classList.add('mode-switch');
+      pinned = want;
+      root.classList.toggle('pinned', pinned);
+      scenes.forEach((s) => s.classList.remove('is-active', 'is-live', 'leaving'));
+      if (pinned) scenes.forEach((s) => s.classList.add('is-in'));
+      if (active && pinned) active.classList.add('is-active', 'is-live');
+      void root.offsetHeight;
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => root.classList.remove('mode-switch')));
     }
+    sizeMiniLabels();
+    if (active) scrollToScene(active);
   }
   let resizeTimer = 0;
+  let resizeWidth = window.innerWidth;
   window.addEventListener('resize', () => {
     if (window.innerWidth > 720) openMenu(false);
+    // mobile browser bars change the height while scrolling; only a real resize re-anchors
+    if (!pinned && window.innerWidth === resizeWidth) { requestFrame(); return; }
+    resizeWidth = window.innerWidth;
+    resizing = true;
     window.clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(() => { setMode(); requestFrame(); }, 150);
+    resizeTimer = window.setTimeout(() => {
+      setMode();
+      resizing = false;
+      requestFrame();
+    }, 150);
   });
 
   /* ---------- Cross-fade for language changes and flowing-layout jumps ---------- */
@@ -253,7 +344,7 @@
   function sceneOf(id) {
     const t = id && document.getElementById(id);
     if (!t) return null;
-    return t.classList.contains('scene') ? t : t.querySelector('.scene');
+    return t.closest('.scene') || t.querySelector('.scene');
   }
   function hashId() {
     const raw = window.location.hash.slice(1);
@@ -263,6 +354,10 @@
   function go(id, push) {
     const scene = sceneOf(id);
     if (!scene) return;
+    if (push) {
+      const url = id === 'top' ? window.location.pathname + window.location.search : '#' + id;
+      history.pushState(null, '', url);
+    }
     const jump = () => {
       scrollToScene(scene);
       if (!pinned) reveal(scene, false);
@@ -272,10 +367,6 @@
     // pinned: the scene change is itself the transition
     if (pinned || scene === active) jump();
     else crossfade(jump);
-    if (push) {
-      const url = id === 'top' ? window.location.pathname + window.location.search : '#' + id;
-      history.pushState(null, '', url);
-    }
     scene.setAttribute('tabindex', '-1');
     scene.focus({ preventScroll: true });
   }
@@ -289,11 +380,17 @@
   });
   window.addEventListener('popstate', () => go(hashId() || 'top', false));
 
-  // keyboard focus landing in a scene that is not on screen brings that scene forward
-  document.addEventListener('focusin', (ev) => {
-    if (!pinned) return;
-    const s = ev.target.closest && ev.target.closest('.scene');
+  // keyboard focus, find-in-page or a text fragment landing in a hidden scene brings that scene forward
+  function bringForward(node) {
+    if (!pinned || !node) return;
+    const el = node.nodeType === 1 ? node : node.parentElement;
+    const s = el && el.closest && el.closest('.scene');
     if (s && s !== active) { scrollToScene(s); setScene(s, false); }
+  }
+  document.addEventListener('focusin', (ev) => bringForward(ev.target));
+  document.addEventListener('selectionchange', () => {
+    const sel = window.getSelection && window.getSelection();
+    if (sel && sel.rangeCount && !sel.isCollapsed) bringForward(sel.anchorNode);
   });
 
   /* ---------- Language ---------- */
@@ -318,7 +415,13 @@
       store.set('lang', l);
       crossfade(() => {
         if (pendingLang === l) pendingLang = null;
+        // keep the reading position: the current scene's heading stays where it was
+        const ref = active && active.querySelector('h1, h2:not(.sr), h3, .big');
+        const before = ref ? ref.getBoundingClientRect().top : 0;
         applyLang(l);
+        setMode();
+        if (!pinned && ref) window.scrollBy(0, ref.getBoundingClientRect().top - before);
+        held = active ? { scene: active, y: window.scrollY } : null;
         frame();
       });
     });
@@ -368,11 +471,13 @@
   /* ---------- First paint ---------- */
   root.setAttribute('data-dir', 'down');
   applyLang(lang());
-  setMode();
+  if (pinned) scenes.forEach((s) => s.classList.add('is-in'));
   const start = sceneOf(hashId());
   if (start) scrollToScene(start);
-  const first = currentScene();
+  else window.scrollTo(0, 0);
+  const first = start || currentScene();
   setScene(first, true);
+  setMode();
   if (reduced) {
     scenes.forEach((s) => s.classList.add('is-in'));
     root.classList.add('drawn', 'settled');

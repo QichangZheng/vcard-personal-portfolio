@@ -14,9 +14,9 @@
   <meta property="og:image" content="https://www.qichangzheng.net/assets/og.jpg">
   <meta name="twitter:card" content="summary">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <script>(function(){var d=document.documentElement,l=null;try{l=localStorage.getItem('lang')}catch(e){}if(l!=='en'&&l!=='zh'){l=/^zh/i.test(navigator.language||'')?'zh':'en'}d.setAttribute('data-lang',l);d.lang=l==='zh'?'zh-CN':'en';d.className+=' js';if(l==='zh')document.title='郑其昌'})();</script>
+  <script>(function(){var d=document.documentElement,l=null;try{l=localStorage.getItem('lang')}catch(e){}if(l!=='en'&&l!=='zh'){l=/^zh/i.test(navigator.language||'')?'zh':'en'}d.setAttribute('data-lang',l);d.lang=l==='zh'?'zh-CN':'en';d.className+=' js';try{if(innerWidth>=1024&&innerHeight>=560&&!matchMedia('(prefers-reduced-motion: reduce)').matches)d.className+=' pinned'}catch(e){}if(l==='zh')document.title='郑其昌'})();</script>
   <link rel="stylesheet" href="/assets/site.css">
   <script src="/assets/site.js" defer></script>
 </head>
@@ -25,7 +25,6 @@
 
   <header class="nav" id="nav">
     <a class="mark" href="#top" data-go="top" aria-label="QZ, Qichang Zheng">QZ</a>
-    <button class="menu" type="button" aria-expanded="false" aria-controls="links"><span class="en">Menu</span><span class="zh">目录</span></button>
     <nav class="links" id="links" aria-label="Sections">
       <a href="#about" data-go="about"><span class="en">About</span><span class="zh">关于</span></a>
       <a href="#work" data-go="work"><span class="en">Work</span><span class="zh">作品</span></a>
@@ -36,6 +35,7 @@
       <button type="button" data-lang="en" lang="en" aria-pressed="true">EN</button>
       <button type="button" data-lang="zh" lang="zh-CN" aria-pressed="false">中文</button>
     </div>
+    <button class="menu" type="button" aria-expanded="false" aria-controls="links"><span class="en">Menu</span><span class="zh">目录</span></button>
   </header>
   <div class="chapter" aria-hidden="true"><span class="chapter-t"></span></div>
   <div class="veil" aria-hidden="true"></div>
@@ -150,9 +150,10 @@
 
     <section class="scene exp" id="experience" data-scene="exp" data-nav="experience" data-en="Experience" data-zh="经历" aria-labelledby="exp-h">
       <div class="layer">
-        <div class="col">
-          <h2 id="exp-h" class="sec r"><span class="en">Experience</span><span class="zh">经历</span></h2>
-          <ol class="rows">
+        <div class="col cv">
+          <div class="block">
+            <h2 id="exp-h" class="sec r"><span class="en">Experience</span><span class="zh">经历</span></h2>
+            <ol class="rows">
             <li class="row r">
               <span class="when"><span class="en">2026.03 — now</span><span class="zh">2026.03 — 至今</span></span>
               <span class="org"><span class="en">Qiji Zhifeng</span><span class="zh">奇绩智峰</span></span>
@@ -164,19 +165,14 @@
               <span class="title">AI Scientist</span>
             </li>
           </ol>
-          <p class="earlier r">
+            <p class="earlier r">
             <span class="en">Earlier: Prudential Financial, Machine Learning Engineer (Capstone), and Shannon Investment, NLP Engineer, 2023–2024.</span>
             <span class="zh">更早：Prudential Financial 机器学习工程师（Capstone 项目）、Shannon Investment NLP <span class="nw">工程师</span>，2023–2024。</span>
           </p>
-        </div>
-      </div>
-    </section>
-
-    <section class="scene edu" id="education" data-scene="edu" data-nav="experience" data-en="Education" data-zh="教育" aria-labelledby="edu-h">
-      <div class="layer">
-        <div class="col">
-          <h2 id="edu-h" class="sec r"><span class="en">Education</span><span class="zh">教育</span></h2>
-          <ol class="rows">
+          </div>
+          <div class="block" id="education">
+            <h2 id="edu-h" class="sec r"><span class="en">Education</span><span class="zh">教育</span></h2>
+            <ol class="rows">
             <li class="row r">
               <span class="when">2022 — 2024</span>
               <span class="org"><span class="en">University of Chicago</span><span class="zh">芝加哥大学</span></span>
@@ -188,6 +184,7 @@
               <span class="title"><span class="en">BSc in Economics and Finance</span><span class="zh">经济与金融学士</span></span>
             </li>
           </ol>
+          </div>
         </div>
       </div>
     </section>
