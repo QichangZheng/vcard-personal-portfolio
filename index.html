@@ -14,6 +14,8 @@
   <meta property="og:image" content="https://www.qichangzheng.net/assets/og.jpg">
   <meta name="twitter:card" content="summary">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <script>(function(){var d=document.documentElement,l=null;try{l=localStorage.getItem('lang')}catch(e){}if(l!=='en'&&l!=='zh'){l=/^zh/i.test(navigator.language||'')?'zh':'en'}d.setAttribute('data-lang',l);d.lang=l==='zh'?'zh-CN':'en';d.className+=' js';if(l==='zh')document.title='郑其昌'})();</script>
   <link rel="stylesheet" href="/assets/site.css">
   <script src="/assets/site.js" defer></script>
@@ -22,7 +24,8 @@
   <a class="skip" href="#main"><span class="en">Skip to content</span><span class="zh">跳到正文</span></a>
 
   <header class="nav" id="nav">
-    <a class="mark" href="#top" data-go="top" aria-label="Qichang Zheng">QZ</a>
+    <a class="mark" href="#top" data-go="top" aria-label="QZ, Qichang Zheng">QZ</a>
+    <button class="menu" type="button" aria-expanded="false" aria-controls="links"><span class="en">Menu</span><span class="zh">目录</span></button>
     <nav class="links" id="links" aria-label="Sections">
       <a href="#about" data-go="about"><span class="en">About</span><span class="zh">关于</span></a>
       <a href="#work" data-go="work"><span class="en">Work</span><span class="zh">作品</span></a>
@@ -30,163 +33,184 @@
       <a href="#contact" data-go="contact"><span class="en">Contact</span><span class="zh">联系</span></a>
     </nav>
     <div class="lang" role="group" aria-label="Language / 语言">
-      <button type="button" data-lang="en" aria-pressed="true">EN</button>
-      <button type="button" data-lang="zh" aria-pressed="false">中文</button>
+      <button type="button" data-lang="en" lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="zh" lang="zh-CN" aria-pressed="false">中文</button>
     </div>
-    <button class="menu" type="button" aria-expanded="false" aria-controls="links"><span class="en">Menu</span><span class="zh">目录</span></button>
   </header>
   <div class="chapter" aria-hidden="true"><span class="chapter-t"></span></div>
   <div class="veil" aria-hidden="true"></div>
 
-  <div class="stage" aria-hidden="true"><svg class="diagram" viewBox="-8 60 924 660" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false"><g class="grp g-nac"><path class="e dash bound" d="M148 84H812A18 18 0 0 1 830 102V452A18 18 0 0 1 812 470H148A18 18 0 0 1 130 452V102A18 18 0 0 1 148 84Z"/><text class="lbl cap" x="150" y="112">North Agent Cloud</text></g><g class="grp g-nac"><path class="n draw" pathLength="1" style="--dd:0.06s" d="M10 196H86A10 10 0 0 1 96 206V226A10 10 0 0 1 86 236H10A10 10 0 0 1 0 226V206A10 10 0 0 1 10 196Z"/><text class="lbl" x="48" y="216">Clients</text></g><g class="grp g-nac"><path class="n draw" pathLength="1" style="--dd:0.12s" d="M170 196H260A10 10 0 0 1 270 206V226A10 10 0 0 1 260 236H170A10 10 0 0 1 160 226V206A10 10 0 0 1 170 196Z"/><text class="lbl" x="215" y="216">Gateway</text></g><g class="grp g-nac g-sbx"><path class="n draw" pathLength="1" style="--dd:0.18s" d="M320 170H430A10 10 0 0 1 440 180V252A10 10 0 0 1 430 262H320A10 10 0 0 1 310 252V180A10 10 0 0 1 320 170Z"/><text class="lbl" x="375" y="216">Runtime</text></g><g class="grp g-nac"><path class="n draw" pathLength="1" style="--dd:0.24s" d="M320 330H430A10 10 0 0 1 440 340V360A10 10 0 0 1 430 370H320A10 10 0 0 1 310 360V340A10 10 0 0 1 320 330Z"/><text class="lbl" x="375" y="350">Scheduler</text></g><g class="grp g-nac"><path class="n draw" pathLength="1" style="--dd:0.30s" d="M170 330H260A10 10 0 0 1 270 340V360A10 10 0 0 1 260 370H170A10 10 0 0 1 160 360V340A10 10 0 0 1 170 330Z"/><text class="lbl" x="215" y="350">Tracing</text></g><g class="grp g-sbx"><path class="n draw" pathLength="1" style="--dd:0.36s" d="M490 140H630A10 10 0 0 1 640 150V290A10 10 0 0 1 630 300H490A10 10 0 0 1 480 290V150A10 10 0 0 1 490 140Z"/><path class="n slot draw busy" pathLength="1" style="--dd:0.50s" d="M498 184H514A5 5 0 0 1 519 189V203A5 5 0 0 1 514 208H498A5 5 0 0 1 493 203V189A5 5 0 0 1 498 184Z"/><path class="n slot draw" pathLength="1" style="--dd:0.53s" d="M534 184H550A5 5 0 0 1 555 189V203A5 5 0 0 1 550 208H534A5 5 0 0 1 529 203V189A5 5 0 0 1 534 184Z"/><path class="n slot draw busy" pathLength="1" style="--dd:0.56s" d="M570 184H586A5 5 0 0 1 591 189V203A5 5 0 0 1 586 208H570A5 5 0 0 1 565 203V189A5 5 0 0 1 570 184Z"/><path class="n slot draw" pathLength="1" style="--dd:0.59s" d="M606 184H622A5 5 0 0 1 627 189V203A5 5 0 0 1 622 208H606A5 5 0 0 1 601 203V189A5 5 0 0 1 606 184Z"/><path class="n slot draw" pathLength="1" style="--dd:0.62s" d="M498 218H514A5 5 0 0 1 519 223V237A5 5 0 0 1 514 242H498A5 5 0 0 1 493 237V223A5 5 0 0 1 498 218Z"/><path class="n slot draw busy" pathLength="1" style="--dd:0.65s" d="M534 218H550A5 5 0 0 1 555 223V237A5 5 0 0 1 550 242H534A5 5 0 0 1 529 237V223A5 5 0 0 1 534 218Z"/><path class="n slot draw claim" pathLength="1" style="--dd:0.68s" d="M570 218H586A5 5 0 0 1 591 223V237A5 5 0 0 1 586 242H570A5 5 0 0 1 565 237V223A5 5 0 0 1 570 218Z"/><path class="n slot draw" pathLength="1" style="--dd:0.71s" d="M606 218H622A5 5 0 0 1 627 223V237A5 5 0 0 1 622 242H606A5 5 0 0 1 601 237V223A5 5 0 0 1 606 218Z"/><path class="n slot draw" pathLength="1" style="--dd:0.74s" d="M498 252H514A5 5 0 0 1 519 257V271A5 5 0 0 1 514 276H498A5 5 0 0 1 493 271V257A5 5 0 0 1 498 252Z"/><path class="n slot draw" pathLength="1" style="--dd:0.77s" d="M534 252H550A5 5 0 0 1 555 257V271A5 5 0 0 1 550 276H534A5 5 0 0 1 529 271V257A5 5 0 0 1 534 252Z"/><path class="n slot draw" pathLength="1" style="--dd:0.80s" d="M570 252H586A5 5 0 0 1 591 257V271A5 5 0 0 1 586 276H570A5 5 0 0 1 565 271V257A5 5 0 0 1 570 252Z"/><path class="n slot draw busy" pathLength="1" style="--dd:0.83s" d="M606 252H622A5 5 0 0 1 627 257V271A5 5 0 0 1 622 276H606A5 5 0 0 1 601 271V257A5 5 0 0 1 606 252Z"/><text class="lbl" x="560" y="163">Sandboxes</text></g><g class="grp g-sbx"><path class="n draw" pathLength="1" style="--dd:0.42s" d="M490 330H630A10 10 0 0 1 640 340V360A10 10 0 0 1 630 370H490A10 10 0 0 1 480 360V340A10 10 0 0 1 490 330Z"/><text class="lbl" x="560" y="350">JuiceFS</text></g><g class="grp g-sbx"><path class="n draw" pathLength="1" style="--dd:0.48s" d="M490 398H630A10 10 0 0 1 640 408V438A10 10 0 0 1 630 448H490A10 10 0 0 1 480 438V408A10 10 0 0 1 490 398Z"/><path class="n draw" pathLength="1" style="--dd:0.42s" d="M480 411H640"/><text class="lbl" x="560" y="428">Object storage</text></g><g class="grp g-fw"><path class="n draw" pathLength="1" style="--dd:0.54s" d="M690 200H780A10 10 0 0 1 790 210V230A10 10 0 0 1 780 240H690A10 10 0 0 1 680 230V210A10 10 0 0 1 690 200Z"/><text class="lbl" x="735" y="220">Firewall</text></g><g class="grp g-fw"><path class="n draw" pathLength="1" style="--dd:0.60s" d="M690 330H780A10 10 0 0 1 790 340V360A10 10 0 0 1 780 370H690A10 10 0 0 1 680 360V340A10 10 0 0 1 690 330Z"/><text class="lbl" x="735" y="350">Vault</text></g><g class="grp g-nac"><path class="e draw" pathLength="1" style="--dd:0.64s" d="M96 216H160"/><circle class="dot" r="3"><animateMotion dur="2.8s" begin="0s" repeatCount="indefinite" path="M96 216H160"/></circle></g><g class="grp g-nac"><path class="e draw" pathLength="1" style="--dd:0.68s" d="M270 216H310"/><circle class="dot" r="3"><animateMotion dur="1.6s" begin="0.5s" repeatCount="indefinite" path="M270 216H310"/></circle></g><g class="grp g-nac g-sbx"><path class="e draw" pathLength="1" style="--dd:0.72s" d="M440 216H480"/><circle class="dot" r="3"><animateMotion dur="1.6s" begin="0.9s" repeatCount="indefinite" path="M440 216H480"/></circle></g><g class="grp g-nac"><path class="e draw" pathLength="1" style="--dd:0.76s" d="M375 262V330"/><circle class="dot" r="3"><animateMotion dur="2.2s" begin="0.3s" repeatCount="indefinite" path="M375 262V330"/></circle></g><g class="grp g-nac"><path class="e dash" style="--dd:0.80s" d="M215 236V330"/></g><g class="grp g-sbx"><path class="e draw" pathLength="1" style="--dd:0.84s" d="M560 300V330"/><circle class="dot" r="3"><animateMotion dur="1.4s" begin="0.2s" repeatCount="indefinite" path="M560 300V330"/></circle></g><g class="grp g-sbx"><path class="e draw" pathLength="1" style="--dd:0.88s" d="M560 370V398"/><circle class="dot" r="3"><animateMotion dur="1.4s" begin="0.9s" repeatCount="indefinite" path="M560 370V398"/></circle></g><g class="grp g-fw"><path class="e draw" pathLength="1" style="--dd:0.92s" d="M640 220H680"/><circle class="dot" r="3"><animateMotion dur="1.6s" begin="0.1s" repeatCount="indefinite" path="M640 220H680"/></circle></g><g class="grp g-fw"><path class="e draw" pathLength="1" style="--dd:0.96s" d="M790 220H900"/><circle class="dot" r="3"><animateMotion dur="3s" begin="0.6s" repeatCount="indefinite" path="M790 220H900"/></circle></g><g class="grp g-fw"><path class="e draw" pathLength="1" style="--dd:1.00s" d="M735 330V240"/><circle class="dot" r="3"><animateMotion dur="2.4s" begin="1.2s" repeatCount="indefinite" path="M735 330V240"/></circle></g><g class="grp g-fw"><text class="lbl" x="866" y="204">Internet</text></g><g class="grp g-team"><text class="lbl cap" x="26" y="528" text-anchor="start">Agent Team</text><circle class="n agent" cx="34" cy="556" r="5"/><path class="e draw" pathLength="1" style="--dd:1.00s" d="M40 556H250C300 556 320 635 372 635"/><circle class="dot" r="3"><animateMotion dur="3.20s" begin="0.00s" repeatCount="indefinite" path="M40 556H250C300 556 320 635 372 635"/></circle><circle class="n agent" cx="34" cy="584" r="5"/><path class="e draw" pathLength="1" style="--dd:1.05s" d="M40 584H250C300 584 320 635 372 635"/><circle class="dot" r="3"><animateMotion dur="3.55s" begin="0.45s" repeatCount="indefinite" path="M40 584H250C300 584 320 635 372 635"/></circle><circle class="n agent" cx="34" cy="612" r="5"/><path class="e draw" pathLength="1" style="--dd:1.10s" d="M40 612H250C300 612 320 635 372 635"/><circle class="dot" r="3"><animateMotion dur="3.90s" begin="0.90s" repeatCount="indefinite" path="M40 612H250C300 612 320 635 372 635"/></circle><circle class="n agent" cx="34" cy="640" r="5"/><path class="e draw" pathLength="1" style="--dd:1.15s" d="M40 640H250C300 640 320 635 372 635"/><circle class="dot" r="3"><animateMotion dur="4.25s" begin="1.35s" repeatCount="indefinite" path="M40 640H250C300 640 320 635 372 635"/></circle><circle class="n agent" cx="34" cy="668" r="5"/><path class="e draw" pathLength="1" style="--dd:1.20s" d="M40 668H250C300 668 320 635 372 635"/><circle class="dot" r="3"><animateMotion dur="4.60s" begin="1.80s" repeatCount="indefinite" path="M40 668H250C300 668 320 635 372 635"/></circle><circle class="n agent" cx="34" cy="696" r="5"/><path class="e draw" pathLength="1" style="--dd:1.25s" d="M40 696H250C300 696 320 635 372 635"/><circle class="dot" r="3"><animateMotion dur="4.95s" begin="2.25s" repeatCount="indefinite" path="M40 696H250C300 696 320 635 372 635"/></circle></g><g class="grp g-team"><path class="n draw" pathLength="1" style="--dd:1.26s" d="M382 600H512A10 10 0 0 1 522 610V660A10 10 0 0 1 512 670H382A10 10 0 0 1 372 660V610A10 10 0 0 1 382 600Z"/><text class="lbl" x="447" y="635">Control plane</text></g><g class="grp g-team"><path class="n draw" pathLength="1" style="--dd:1.32s" d="M582 615H672A10 10 0 0 1 682 625V645A10 10 0 0 1 672 655H582A10 10 0 0 1 572 645V625A10 10 0 0 1 582 615Z"/><text class="lbl" x="627" y="635">Verifier</text></g><g class="grp g-team"><path class="e draw" pathLength="1" style="--dd:1.36s" d="M522 635H572"/><circle class="dot" r="3"><animateMotion dur="1.8s" begin="0.4s" repeatCount="indefinite" path="M522 635H572"/></circle></g><g class="grp g-team"><path class="e dash" style="--dd:1.40s" d="M447 600V470"/></g></svg></div>
+  <div class="backdrop" aria-hidden="true"><svg class="diagram" viewBox="-8 60 924 660" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false"><g class="grp g-nac"><path class="e dash bound" d="M148 84H812A18 18 0 0 1 830 102V452A18 18 0 0 1 812 470H148A18 18 0 0 1 130 452V102A18 18 0 0 1 148 84Z"/><text class="lbl cap" x="150" y="112">North Agent Cloud</text></g><g class="grp g-nac"><path class="n draw" pathLength="1" style="--dd:0.06s" d="M10 196H86A10 10 0 0 1 96 206V226A10 10 0 0 1 86 236H10A10 10 0 0 1 0 226V206A10 10 0 0 1 10 196Z"/><text class="lbl" x="48" y="216">Clients</text></g><g class="grp g-nac"><path class="n draw" pathLength="1" style="--dd:0.12s" d="M170 196H260A10 10 0 0 1 270 206V226A10 10 0 0 1 260 236H170A10 10 0 0 1 160 226V206A10 10 0 0 1 170 196Z"/><text class="lbl" x="215" y="216">Gateway</text></g><g class="grp g-nac g-sbx"><path class="n draw" pathLength="1" style="--dd:0.18s" d="M320 170H430A10 10 0 0 1 440 180V252A10 10 0 0 1 430 262H320A10 10 0 0 1 310 252V180A10 10 0 0 1 320 170Z"/><text class="lbl" x="375" y="216">Runtime</text></g><g class="grp g-nac"><path class="n draw" pathLength="1" style="--dd:0.24s" d="M320 330H430A10 10 0 0 1 440 340V360A10 10 0 0 1 430 370H320A10 10 0 0 1 310 360V340A10 10 0 0 1 320 330Z"/><text class="lbl" x="375" y="350">Scheduler</text></g><g class="grp g-nac"><path class="n draw" pathLength="1" style="--dd:0.30s" d="M170 330H260A10 10 0 0 1 270 340V360A10 10 0 0 1 260 370H170A10 10 0 0 1 160 360V340A10 10 0 0 1 170 330Z"/><text class="lbl" x="215" y="350">Tracing</text></g><g class="grp g-sbx"><path class="n draw" pathLength="1" style="--dd:0.36s" d="M490 140H630A10 10 0 0 1 640 150V290A10 10 0 0 1 630 300H490A10 10 0 0 1 480 290V150A10 10 0 0 1 490 140Z"/><path class="n slot draw busy" pathLength="1" style="--dd:0.50s" d="M498 184H514A5 5 0 0 1 519 189V203A5 5 0 0 1 514 208H498A5 5 0 0 1 493 203V189A5 5 0 0 1 498 184Z"/><path class="n slot draw" pathLength="1" style="--dd:0.53s" d="M534 184H550A5 5 0 0 1 555 189V203A5 5 0 0 1 550 208H534A5 5 0 0 1 529 203V189A5 5 0 0 1 534 184Z"/><path class="n slot draw busy" pathLength="1" style="--dd:0.56s" d="M570 184H586A5 5 0 0 1 591 189V203A5 5 0 0 1 586 208H570A5 5 0 0 1 565 203V189A5 5 0 0 1 570 184Z"/><path class="n slot draw" pathLength="1" style="--dd:0.59s" d="M606 184H622A5 5 0 0 1 627 189V203A5 5 0 0 1 622 208H606A5 5 0 0 1 601 203V189A5 5 0 0 1 606 184Z"/><path class="n slot draw" pathLength="1" style="--dd:0.62s" d="M498 218H514A5 5 0 0 1 519 223V237A5 5 0 0 1 514 242H498A5 5 0 0 1 493 237V223A5 5 0 0 1 498 218Z"/><path class="n slot draw busy" pathLength="1" style="--dd:0.65s" d="M534 218H550A5 5 0 0 1 555 223V237A5 5 0 0 1 550 242H534A5 5 0 0 1 529 237V223A5 5 0 0 1 534 218Z"/><path class="n slot draw" pathLength="1" style="--dd:0.68s" d="M570 218H586A5 5 0 0 1 591 223V237A5 5 0 0 1 586 242H570A5 5 0 0 1 565 237V223A5 5 0 0 1 570 218Z"/><path class="n slot draw" pathLength="1" style="--dd:0.71s" d="M606 218H622A5 5 0 0 1 627 223V237A5 5 0 0 1 622 242H606A5 5 0 0 1 601 237V223A5 5 0 0 1 606 218Z"/><path class="n slot draw" pathLength="1" style="--dd:0.74s" d="M498 252H514A5 5 0 0 1 519 257V271A5 5 0 0 1 514 276H498A5 5 0 0 1 493 271V257A5 5 0 0 1 498 252Z"/><path class="n slot draw" pathLength="1" style="--dd:0.77s" d="M534 252H550A5 5 0 0 1 555 257V271A5 5 0 0 1 550 276H534A5 5 0 0 1 529 271V257A5 5 0 0 1 534 252Z"/><path class="n slot draw" pathLength="1" style="--dd:0.80s" d="M570 252H586A5 5 0 0 1 591 257V271A5 5 0 0 1 586 276H570A5 5 0 0 1 565 271V257A5 5 0 0 1 570 252Z"/><path class="n slot draw busy" pathLength="1" style="--dd:0.83s" d="M606 252H622A5 5 0 0 1 627 257V271A5 5 0 0 1 622 276H606A5 5 0 0 1 601 271V257A5 5 0 0 1 606 252Z"/><text class="lbl" x="560" y="163">Sandboxes</text></g><g class="grp g-sbx"><path class="n draw" pathLength="1" style="--dd:0.42s" d="M490 330H630A10 10 0 0 1 640 340V360A10 10 0 0 1 630 370H490A10 10 0 0 1 480 360V340A10 10 0 0 1 490 330Z"/><text class="lbl" x="560" y="350">JuiceFS</text></g><g class="grp g-sbx"><path class="n draw" pathLength="1" style="--dd:0.48s" d="M490 398H630A10 10 0 0 1 640 408V438A10 10 0 0 1 630 448H490A10 10 0 0 1 480 438V408A10 10 0 0 1 490 398Z"/><path class="n draw" pathLength="1" style="--dd:0.42s" d="M480 411H640"/><text class="lbl" x="560" y="428">Object storage</text></g><g class="grp g-fw"><path class="n draw" pathLength="1" style="--dd:0.54s" d="M690 200H780A10 10 0 0 1 790 210V230A10 10 0 0 1 780 240H690A10 10 0 0 1 680 230V210A10 10 0 0 1 690 200Z"/><text class="lbl" x="735" y="220">Firewall</text></g><g class="grp g-fw"><path class="n draw" pathLength="1" style="--dd:0.60s" d="M690 330H780A10 10 0 0 1 790 340V360A10 10 0 0 1 780 370H690A10 10 0 0 1 680 360V340A10 10 0 0 1 690 330Z"/><text class="lbl" x="735" y="350">Vault</text></g><g class="grp g-nac"><path class="e draw" pathLength="1" style="--dd:0.64s" d="M96 216H160"/></g><g class="grp g-nac"><path class="e draw" pathLength="1" style="--dd:0.68s" d="M270 216H310"/></g><g class="grp g-nac g-sbx"><path class="e draw" pathLength="1" style="--dd:0.72s" d="M440 216H480"/></g><g class="grp g-nac"><path class="e draw" pathLength="1" style="--dd:0.76s" d="M375 262V330"/></g><g class="grp g-nac"><path class="e dash" style="--dd:0.80s" d="M215 236V330"/></g><g class="grp g-sbx"><path class="e draw" pathLength="1" style="--dd:0.84s" d="M560 300V330"/></g><g class="grp g-sbx"><path class="e draw" pathLength="1" style="--dd:0.88s" d="M560 370V398"/></g><g class="grp g-fw"><path class="e draw" pathLength="1" style="--dd:0.92s" d="M640 220H680"/></g><g class="grp g-fw"><path class="e draw" pathLength="1" style="--dd:0.96s" d="M790 220H900"/></g><g class="grp g-fw"><path class="e draw" pathLength="1" style="--dd:1.00s" d="M735 330V240"/></g><g class="grp g-fw"><text class="lbl" x="866" y="204">Internet</text></g><g class="grp g-team"><text class="lbl cap" x="26" y="528" text-anchor="start">Agent Team</text><circle class="n agent" cx="34" cy="556" r="5"/><path class="e draw" pathLength="1" style="--dd:1.00s" d="M40 556H250C300 556 320 635 372 635"/><circle class="n agent" cx="34" cy="584" r="5"/><path class="e draw" pathLength="1" style="--dd:1.05s" d="M40 584H250C300 584 320 635 372 635"/><circle class="n agent" cx="34" cy="612" r="5"/><path class="e draw" pathLength="1" style="--dd:1.10s" d="M40 612H250C300 612 320 635 372 635"/><circle class="n agent" cx="34" cy="640" r="5"/><path class="e draw" pathLength="1" style="--dd:1.15s" d="M40 640H250C300 640 320 635 372 635"/><circle class="n agent" cx="34" cy="668" r="5"/><path class="e draw" pathLength="1" style="--dd:1.20s" d="M40 668H250C300 668 320 635 372 635"/><circle class="n agent" cx="34" cy="696" r="5"/><path class="e draw" pathLength="1" style="--dd:1.25s" d="M40 696H250C300 696 320 635 372 635"/></g><g class="grp g-team"><path class="n draw" pathLength="1" style="--dd:1.26s" d="M382 600H512A10 10 0 0 1 522 610V660A10 10 0 0 1 512 670H382A10 10 0 0 1 372 660V610A10 10 0 0 1 382 600Z"/><text class="lbl" x="447" y="635">Control plane</text></g><g class="grp g-team"><path class="n draw" pathLength="1" style="--dd:1.32s" d="M582 615H672A10 10 0 0 1 682 625V645A10 10 0 0 1 672 655H582A10 10 0 0 1 572 645V625A10 10 0 0 1 582 615Z"/><text class="lbl" x="627" y="635">Verifier</text></g><g class="grp g-team"><path class="e draw" pathLength="1" style="--dd:1.36s" d="M522 635H572"/></g><g class="grp g-team"><path class="e dash" style="--dd:1.40s" d="M447 600V470"/></g></svg></div>
 
-  <main id="main">
+  <main id="main" tabindex="-1">
     <section class="scene hero" id="top" data-scene="hero" aria-labelledby="name">
-      <div class="col">
-        <h1 id="name" class="r">
-          <span class="en">Qichang Zheng</span><span class="zh">郑其昌</span>
-          <span class="alt"><span class="en" lang="zh-CN">郑其昌</span><span class="zh" lang="en">Qichang Zheng</span></span>
-        </h1>
-        <p class="lede r">
-          <span class="en">I build the infrastructure AI agents run on in production — and the tooling to develop with many coding agents at once.</span>
-          <span class="zh">我做让 AI Agent 在生产环境里跑起来的基础设施，也做让一群编程 Agent 并行干活的工具。</span>
-        </p>
-        <p class="role r">
-          <span class="en">AI Agent Platform Lead, based in Shanghai</span>
-          <span class="zh">AI Agent 平台负责人，现居上海</span>
-        </p>
+      <div class="layer">
+        <div class="col">
+          <h1 id="name" class="r">
+            <span class="en">Qichang Zheng</span><span class="zh">郑其昌</span>
+            <span class="alt"><span class="en" lang="zh-CN">郑其昌</span><span class="zh" lang="en">Qichang Zheng</span></span>
+          </h1>
+          <p class="lede r">
+            <span class="en">I build the infrastructure AI agents run on in production — and the tooling to develop with many coding agents at once.</span>
+            <span class="zh">我做让 AI Agent 在生产环境里跑起来的<span class="nw">基础设施</span>，也做让一群编程 Agent 并行干活的工具。</span>
+          </p>
+          <p class="role r">
+            <span class="en">AI Agent Platform Lead, based in Shanghai</span>
+            <span class="zh">AI Agent <span class="nw">平台负责人</span>，现居上海</span>
+          </p>
+        </div>
       </div>
     </section>
 
-    <section class="scene about" id="about" data-scene="about" data-en="About" data-zh="关于" aria-labelledby="about-h">
-      <div class="col">
-        <h2 id="about-h" class="sr"><span class="en">About</span><span class="zh">关于</span></h2>
-        <p class="big r">
-          <span class="en">I lead the AI Agent platform at Qiji Zhifeng in Shanghai, as tech lead of a 10-person team. We build North Agent Cloud, a platform for building, deploying, and running AI agents; it runs in production across several deployments.</span>
-          <span class="zh">我在上海奇绩智峰负责 AI Agent 平台，是 10 人团队的技术负责人。我们做 North Agent Cloud——一个构建、部署和运行 AI Agent 的平台，已在多个生产环境上线。</span>
-        </p>
-        <p class="r">
-          <span class="en">Most of my own engineering goes through coding agents. I built Agent Team to run them in parallel — and to catch the ways long-running agents fail.</span>
-          <span class="zh">我自己的大部分工程工作是交给编程 Agent 完成的。为此我写了 Agent Team，让它们并行工作，并专门治理长程任务里 Agent 的典型失效。</span>
-        </p>
-        <p class="r">
-          <span class="en">Before that I was an AI Scientist at Devz AI in the US, working on enterprise agents, a general-purpose web agent, and fine-tuned domain LLMs.</span>
-          <span class="zh">在此之前，我在美国 Devz AI 担任 AI Scientist，做企业级 Agent、通用网页智能体和垂类大模型微调。</span>
-        </p>
+    <section class="scene about" id="about" data-scene="about" data-nav="about" data-en="About" data-zh="关于" aria-labelledby="about-h">
+      <div class="layer">
+        <div class="col">
+          <h2 id="about-h" class="sr"><span class="en">About</span><span class="zh">关于</span></h2>
+          <p class="big r">
+            <span class="en">I lead the AI Agent platform at Qiji Zhifeng in Shanghai, as tech lead of a 10-person team. We build North Agent Cloud, a platform for building, deploying, and running AI agents; it runs in production across several deployments.</span>
+            <span class="zh">我在上海奇绩智峰负责 AI Agent 平台，是 10 人团队的技术负责人。我们做 North Agent Cloud——一个构建、部署和运行 AI Agent 的平台，已在多个生产环境上线。</span>
+          </p>
+          <p class="r">
+            <span class="en">Most of my own engineering goes through coding agents. I built Agent Team to run them in parallel — and to catch the ways long-running agents fail.</span>
+            <span class="zh">我自己的大部分工程工作是交给编程 Agent 完成的。为此我写了 Agent Team，让它们并行工作，并专门治理长程任务里 Agent 的典型失效。</span>
+          </p>
+          <p class="r">
+            <span class="en">Before that I was an AI Scientist at Devz AI in the US, working on enterprise agents, a general-purpose web agent, and fine-tuned domain LLMs.</span>
+            <span class="zh">在此之前，我在美国 Devz AI 担任 AI Scientist，做企业级 Agent、通用网页智能体和垂类大模型微调。</span>
+          </p>
+        </div>
+        <picture class="portrait r">
+          <source srcset="/assets/profile.webp" type="image/webp">
+          <img src="/assets/profile.jpg" width="640" height="640" alt="Portrait of Qichang Zheng" data-alt-zh="郑其昌的照片" data-alt-en="Portrait of Qichang Zheng" decoding="async">
+        </picture>
       </div>
-      <picture class="portrait r">
-        <source srcset="/assets/profile.webp" type="image/webp">
-        <img src="/assets/profile.jpg" width="640" height="640" alt="Portrait of Qichang Zheng" loading="lazy" decoding="async">
-      </picture>
     </section>
 
     <div id="work" class="work-group" role="region" aria-labelledby="work-h">
       <h2 id="work-h" class="sr"><span class="en">Work</span><span class="zh">作品</span></h2>
 
-      <section class="scene work" id="north-agent-cloud" data-scene="w1" data-num="01" data-en="North Agent Cloud" data-zh="North Agent Cloud" aria-labelledby="w1-h">
-        <div class="col">
-          <p class="meta r"><span class="num">01</span></p>
-          <h3 id="w1-h" class="r">North Agent Cloud</h3>
-          <p class="line r"><span class="en">A platform for building, deploying, and running AI agents.</span><span class="zh">构建、部署和运行 AI Agent 的平台。</span></p>
-          <ul>
-            <li class="r"><span class="en">Scheduling, sandbox isolation, egress control, credential custody, elastic scaling, end-to-end tracing.</span><span class="zh">调度编排、沙箱隔离、出网管控、凭证托管、弹性伸缩、全链路追踪。</span></li>
-            <li class="r"><span class="en">Runtime and sandbox are decoupled: long, low-load LLM calls and short, high-load tool execution scale separately. Lazy start and automatic reclamation fit about 10x more sandboxes on the same resources.</span><span class="zh">运行时与沙箱分离：长时低负载的模型调用和短时高负载的工具执行各自伸缩；懒启动加自动回收，让同样的资源承载约 10 倍的沙箱。</span></li>
-            <li class="r"><span class="en">The platform’s own built-in features — trajectory analysis, building agents by conversation — are themselves agents running on it.</span><span class="zh">平台内置的轨迹分析、对话式构建 Agent 等功能，本身就是跑在这个平台上的 Agent。</span></li>
-          </ul>
+      <section class="scene work" id="north-agent-cloud" data-scene="w1" data-nav="work" data-num="01" data-en="North Agent Cloud" data-zh="North Agent Cloud" aria-labelledby="w1-h">
+        <div class="layer">
+          <div class="col">
+            <p class="meta r"><span class="num">01</span></p>
+            <h3 id="w1-h" class="r">North Agent Cloud</h3>
+            <p class="line r"><span class="en">A platform for building, deploying, and running AI agents.</span><span class="zh">构建、部署和运行 AI Agent 的平台。</span></p>
+            <ul>
+              <li class="r"><span class="en">Scheduling, sandbox isolation, egress control, credential custody, elastic scaling, end-to-end tracing.</span><span class="zh">调度编排、沙箱隔离、出网管控、凭证托管、弹性伸缩、全链路追踪。</span></li>
+              <li class="r"><span class="en">Runtime and sandbox are decoupled: long, low-load LLM calls and short, high-load tool execution scale separately. Lazy start and automatic reclamation fit about 10x more sandboxes on the same resources.</span><span class="zh">运行时与沙箱分离：长时低负载的模型调用和短时高负载的工具执行各自伸缩；懒启动加自动回收，让同样的资源承载约 10 倍的沙箱。</span></li>
+              <li class="r"><span class="en">The platform’s own built-in features — trajectory analysis, building agents by conversation — are themselves agents running on it.</span><span class="zh">平台内置的轨迹分析、对话式构建 Agent 等功能，本身就是跑在这个平台上的 Agent。</span></li>
+            </ul>
+          </div>
         </div>
       </section>
 
-      <section class="scene work" id="north-sandbox" data-scene="w2" data-num="02" data-en="North Sandbox" data-zh="North Sandbox" aria-labelledby="w2-h">
-        <div class="col">
-          <p class="meta r"><span class="num">02</span></p>
-          <h3 id="w2-h" class="r">North Sandbox</h3>
-          <p class="line r"><span class="en">A multi-tenant sandbox service compatible with the E2B protocol.</span><span class="zh">兼容 E2B 协议的多租户沙箱服务。</span></p>
-          <ul>
-            <li class="r"><span class="en">Per-template warm pools bring sandbox acquisition down to milliseconds.</span><span class="zh">按模板预热，沙箱认领降到毫秒级。</span></li>
-            <li class="r"><span class="en">JuiceFS over object storage as the sandbox file system: data persists in real time, and volumes can be remounted elsewhere.</span><span class="zh">用 JuiceFS 连接对象存储作沙箱文件系统：数据实时落盘，存储卷可以灵活切换。</span></li>
-          </ul>
+      <section class="scene work" id="north-sandbox" data-scene="w2" data-nav="work" data-num="02" data-en="North Sandbox" data-zh="North Sandbox" aria-labelledby="w2-h">
+        <div class="layer">
+          <div class="col">
+            <p class="meta r"><span class="num">02</span></p>
+            <h3 id="w2-h" class="r">North Sandbox</h3>
+            <p class="line r"><span class="en">A multi-tenant sandbox service compatible with the E2B protocol.</span><span class="zh">兼容 E2B 协议的多租户沙箱服务。</span></p>
+            <ul>
+              <li class="r"><span class="en">Per-template warm pools bring sandbox acquisition down to milliseconds.</span><span class="zh">按模板预热，沙箱认领降到毫秒级。</span></li>
+              <li class="r"><span class="en">JuiceFS over object storage as the sandbox file system: data persists in real time, and volumes can be remounted elsewhere.</span><span class="zh">用 JuiceFS 连接对象存储作沙箱文件系统：数据实时落盘，存储卷可以灵活切换。</span></li>
+            </ul>
+          </div>
         </div>
       </section>
 
-      <section class="scene work" id="north-firewall" data-scene="w3" data-num="03" data-en="North Firewall" data-zh="North Firewall" aria-labelledby="w3-h">
-        <div class="col">
-          <p class="meta r"><span class="num">03</span><span class="solo"><span class="en">Built solo, from scratch</span><span class="zh">一人从零建成</span></span></p>
-          <h3 id="w3-h" class="r">North Firewall</h3>
-          <p class="line r"><span class="en">Egress control and credential isolation for agents.</span><span class="zh">面向 Agent 的出网管控与凭证隔离。</span></p>
-          <ul>
-            <li class="r"><span class="en">Transparent egress interception with iptables; HTTPS inspection and audit through CA injection and MITM.</span><span class="zh">基于 iptables 透明拦截出网流量，通过 CA 注入与 MITM 解析审计 HTTPS 请求。</span></li>
-            <li class="r"><span class="en">Vault-backed credentials are injected as placeholders. Agents only ever see the placeholder, so the exposure surface shrinks to a single gateway.</span><span class="zh">凭证存在 Vault，以占位符注入环境变量——Agent 只接触占位符，泄露面收敛到单一网关。</span></li>
-          </ul>
+      <section class="scene work" id="north-firewall" data-scene="w3" data-nav="work" data-num="03" data-en="North Firewall" data-zh="North Firewall" aria-labelledby="w3-h">
+        <div class="layer">
+          <div class="col">
+            <p class="meta r"><span class="num">03</span><span class="solo"><span class="en">Built solo, from scratch</span><span class="zh">一人从零建成</span></span></p>
+            <h3 id="w3-h" class="r">North Firewall</h3>
+            <p class="line r"><span class="en">Egress control and credential isolation for agents.</span><span class="zh">面向 Agent 的出网管控与凭证隔离。</span></p>
+            <ul>
+              <li class="r"><span class="en">Transparent egress interception with iptables; HTTPS inspection and audit through CA injection and MITM.</span><span class="zh">基于 iptables 透明拦截出网流量，通过 CA 注入与 MITM 解析审计 HTTPS 请求。</span></li>
+              <li class="r"><span class="en">Vault-backed credentials are injected as placeholders. Agents only ever see the placeholder, so the exposure surface shrinks to a single gateway.</span><span class="zh">凭证存在 Vault，以占位符注入环境变量——Agent 只接触占位符，泄露面收敛到单一网关。</span></li>
+            </ul>
+          </div>
         </div>
       </section>
 
-      <section class="scene work" id="agent-team" data-scene="w4" data-num="04" data-en="Agent Team" data-zh="Agent Team" aria-labelledby="w4-h">
-        <div class="col">
-          <p class="meta r"><span class="num">04</span><span class="solo"><span class="en">Built solo</span><span class="zh">独立开发</span></span></p>
-          <h3 id="w4-h" class="r">Agent Team</h3>
-          <p class="line r"><span class="en">A control plane for running coding agents in parallel.</span><span class="zh">让编程 Agent 并行开发的控制平台。</span></p>
-          <ul>
-            <li class="r"><span class="en">5–10 Claude Code and Codex agents a day, 20+ at peak, each in its own git worktree and Kubernetes namespace, with message routing between them.</span><span class="zh">日常并行 5–10 个 Claude Code / Codex（峰值 20+），各自独立的 worktree 和 K8s 命名空间，Agent 之间由平台路由通讯。</span></li>
-            <li class="r"><span class="en">Minute-level patrol and custom Stop hooks catch the failure modes of long-running work, like an agent that says it will keep going and then stops. Nothing counts as done until a second agent has tried to prove it broken.</span><span class="zh">分钟级巡检和自研 Stop hook 治理长程任务的典型失效——比如说了要继续却停下；每项改动都要经另一个 Agent 端到端对抗验证，证伪不了才算完成。</span></li>
-            <li class="r"><span class="en">1,400+ commits. My merged pull requests went from about 32 to about 212 a month after it went live.</span><span class="zh">1400+ 次提交；上线后我个人月均合入 PR 从约 32 个增至约 212 个。</span></li>
-          </ul>
+      <section class="scene work" id="agent-team" data-scene="w4" data-nav="work" data-num="04" data-en="Agent Team" data-zh="Agent Team" aria-labelledby="w4-h">
+        <div class="layer">
+          <div class="col">
+            <p class="meta r"><span class="num">04</span><span class="solo"><span class="en">Built solo</span><span class="zh">独立开发</span></span></p>
+            <h3 id="w4-h" class="r">Agent Team</h3>
+            <p class="line r"><span class="en">A control plane for running coding agents in parallel.</span><span class="zh">让编程 Agent 并行开发的控制平台。</span></p>
+            <ul>
+              <li class="r"><span class="en">5–10 Claude Code and Codex agents a day, 20+ at peak, each in its own git worktree and Kubernetes namespace, with message routing between them.</span><span class="zh">日常并行 5–10 个 Claude Code / Codex（峰值 20+），各自独立的 worktree 和 K8s 命名空间，Agent 之间由平台路由通讯。</span></li>
+              <li class="r"><span class="en">Minute-level patrol and custom Stop hooks catch the failure modes of long-running work, like an agent that says it will keep going and then stops. Nothing counts as done until a second agent has tried to prove it broken.</span><span class="zh">分钟级巡检和自研 Stop hook 治理长程任务的典型失效——比如说了要继续却停下；每项改动都要经另一个 Agent 端到端对抗验证，证伪不了才算完成。</span></li>
+              <li class="r"><span class="en">1,400+ commits. My merged pull requests went from about 32 to about 212 a month after it went live.</span><span class="zh">1400+ 次提交；上线后我个人月均合入 PR 从约 32 个增至约 212 个。</span></li>
+            </ul>
+          </div>
         </div>
       </section>
     </div>
 
-    <section class="scene exp" id="experience" data-scene="exp" data-en="Experience" data-zh="经历" aria-labelledby="exp-h">
-      <div class="col wide">
-        <h2 id="exp-h" class="sec r"><span class="en">Experience</span><span class="zh">经历</span></h2>
-        <ol class="rows">
-          <li class="row r">
-            <span class="when"><span class="en">2026.03 — now</span><span class="zh">2026.03 — 至今</span></span>
-            <span class="org"><span class="en">Qiji Zhifeng</span><span class="zh">奇绩智峰</span></span>
-            <span class="title"><span class="en">AI Agent Platform Lead</span><span class="zh">AI Agent 平台负责人</span></span>
-          </li>
-          <li class="row r">
-            <span class="when">2024.08 — 2026.03</span>
-            <span class="org"><span class="en">Devz AI (US)</span><span class="zh">Devz AI（美国）</span></span>
-            <span class="title">AI Scientist</span>
-          </li>
-        </ol>
-        <p class="earlier r">
-          <span class="en">Earlier: Prudential Financial, Machine Learning Engineer (Capstone), and Shannon Investment, NLP Engineer, 2023–2024.</span>
-          <span class="zh">更早：Prudential Financial 机器学习工程师（Capstone 项目）、Shannon Investment NLP 工程师，2023–2024。</span>
-        </p>
-
-        <h2 class="sec r"><span class="en">Education</span><span class="zh">教育</span></h2>
-        <ol class="rows">
-          <li class="row r">
-            <span class="when">2022 — 2024</span>
-            <span class="org"><span class="en">University of Chicago</span><span class="zh">芝加哥大学</span></span>
-            <span class="title"><span class="en">MA in Computational Social Science</span><span class="zh">计算社会科学硕士</span></span>
-          </li>
-          <li class="row r">
-            <span class="when">2018 — 2022</span>
-            <span class="org"><span class="en">Xi’an Jiaotong-Liverpool University</span><span class="zh">西交利物浦大学</span></span>
-            <span class="title"><span class="en">BSc in Economics and Finance</span><span class="zh">经济与金融学士</span></span>
-          </li>
-        </ol>
+    <section class="scene exp" id="experience" data-scene="exp" data-nav="experience" data-en="Experience" data-zh="经历" aria-labelledby="exp-h">
+      <div class="layer">
+        <div class="col">
+          <h2 id="exp-h" class="sec r"><span class="en">Experience</span><span class="zh">经历</span></h2>
+          <ol class="rows">
+            <li class="row r">
+              <span class="when"><span class="en">2026.03 — now</span><span class="zh">2026.03 — 至今</span></span>
+              <span class="org"><span class="en">Qiji Zhifeng</span><span class="zh">奇绩智峰</span></span>
+              <span class="title"><span class="en">AI Agent Platform Lead</span><span class="zh">AI Agent 平台负责人</span></span>
+            </li>
+            <li class="row r">
+              <span class="when">2024.08 — 2026.03</span>
+              <span class="org"><span class="en">Devz AI (US)</span><span class="zh">Devz AI（美国）</span></span>
+              <span class="title">AI Scientist</span>
+            </li>
+          </ol>
+          <p class="earlier r">
+            <span class="en">Earlier: Prudential Financial, Machine Learning Engineer (Capstone), and Shannon Investment, NLP Engineer, 2023–2024.</span>
+            <span class="zh">更早：Prudential Financial 机器学习工程师（Capstone 项目）、Shannon Investment NLP <span class="nw">工程师</span>，2023–2024。</span>
+          </p>
+        </div>
       </div>
     </section>
 
-    <section class="scene contact" id="contact" data-scene="contact" data-en="Contact" data-zh="联系" aria-labelledby="contact-h">
-      <div class="col">
-        <h2 id="contact-h" class="r"><span class="en">Get in touch</span><span class="zh">联系我</span></h2>
-        <p class="r"><a class="email" href="mailto:qichang.zheng2000@gmail.com">qichang.zheng2000@gmail.com</a></p>
-        <ul class="elsewhere r">
-          <li><a href="https://github.com/QichangZheng" rel="noopener">GitHub</a></li>
-          <li><a href="https://www.linkedin.com/in/qichang-zheng/" rel="noopener">LinkedIn</a></li>
-          <li><a href="https://scholar.google.com/citations?user=Ou5NnWwAAAAJ&amp;hl=zh-CN" rel="noopener">Google Scholar</a></li>
-        </ul>
-        <ul class="phones r">
-          <li><a href="tel:+8618862132686">+86 188 6213 2686</a></li>
-          <li><a href="tel:+13125398750">+1 (312) 539-8750</a></li>
-          <li><a href="tel:+17732195794">+1 (773) 219-5794</a></li>
-        </ul>
-        <p class="where r"><span class="en">Shanghai, China</span><span class="zh">中国上海</span><span class="clock" hidden><span class="en">, </span><span class="zh">，</span><time class="time"></time><span class="en"> local time</span><span class="zh"> 当地时间</span></span></p>
+    <section class="scene edu" id="education" data-scene="edu" data-nav="experience" data-en="Education" data-zh="教育" aria-labelledby="edu-h">
+      <div class="layer">
+        <div class="col">
+          <h2 id="edu-h" class="sec r"><span class="en">Education</span><span class="zh">教育</span></h2>
+          <ol class="rows">
+            <li class="row r">
+              <span class="when">2022 — 2024</span>
+              <span class="org"><span class="en">University of Chicago</span><span class="zh">芝加哥大学</span></span>
+              <span class="title"><span class="en">MA in Computational Social Science</span><span class="zh">计算社会科学硕士</span></span>
+            </li>
+            <li class="row r">
+              <span class="when">2018 — 2022</span>
+              <span class="org"><span class="en">Xi’an Jiaotong-Liverpool University</span><span class="zh">西交利物浦大学</span></span>
+              <span class="title"><span class="en">BSc in Economics and Finance</span><span class="zh">经济与金融学士</span></span>
+            </li>
+          </ol>
+        </div>
       </div>
-      <footer class="foot"><small>© 2026 Qichang Zheng</small></footer>
+    </section>
+
+    <section class="scene contact" id="contact" data-scene="contact" data-nav="contact" data-en="Contact" data-zh="联系" aria-labelledby="contact-h">
+      <div class="layer">
+        <div class="col">
+          <h2 id="contact-h" class="r"><span class="en">Get in touch</span><span class="zh">联系我</span></h2>
+          <p class="r"><a class="email" href="mailto:qichang.zheng2000@gmail.com">qichang.zheng2000@gmail.com</a></p>
+          <ul class="elsewhere r">
+            <li><a href="https://github.com/QichangZheng" rel="noopener">GitHub</a></li>
+            <li><a href="https://www.linkedin.com/in/qichang-zheng/" rel="noopener">LinkedIn</a></li>
+            <li><a href="https://scholar.google.com/citations?user=Ou5NnWwAAAAJ&amp;hl=zh-CN" rel="noopener">Google Scholar</a></li>
+          </ul>
+          <ul class="phones r">
+            <li><a href="tel:+8618862132686">+86 188 6213 2686</a></li>
+            <li><a href="tel:+13125398750">+1 (312) 539-8750</a></li>
+            <li><a href="tel:+17732195794">+1 (773) 219-5794</a></li>
+          </ul>
+          <p class="where r"><span class="en">Shanghai, China</span><span class="zh">中国上海</span><span class="clock" hidden><span class="en">, </span><span class="zh">，</span><time class="time"></time><span class="en"> local time</span><span class="zh"> 当地时间</span></span></p>
+        </div>
+        <footer class="foot"><small>© 2026 Qichang Zheng</small></footer>
+      </div>
     </section>
   </main>
 </body>
