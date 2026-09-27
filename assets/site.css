@@ -136,6 +136,7 @@ html:not(.js) .lang { display: none; }
 .chapter-t { display: inline-block; transition: opacity .28s var(--ease), filter .28s var(--ease); }
 .chapter.swap .chapter-t { opacity: 0; filter: blur(3px); }
 .chapter .num { color: var(--faint); margin-right: 8px; font-variant-numeric: tabular-nums; }
+.chapter .part { color: var(--faint); margin-right: 10px; }
 .nav.open ~ .chapter { opacity: 0; transition-duration: .15s; }
 
 /* Content fades and softens as it reaches the top edge. */
@@ -408,14 +409,14 @@ main, .nav .links, .chapter-t { transition: opacity .3s var(--ease), filter .3s 
   .col, .about .col, .exp .col, .edu .col { max-width: 36rem; }
   .backdrop { display: none; }
   .hero .layer { padding-top: 88px; padding-bottom: 8vh; }
-  .js .hero-mini { display: block; aspect-ratio: 720 / 404; max-height: max(0px, calc(100svh - 520px)); margin: 0 0 28px; }
+  .js .hero-mini { display: block; aspect-ratio: 820 / 404; max-height: max(0px, calc(100svh - 520px)); margin: 0 0 28px; }
   .scene:not(.hero) .layer { min-height: 0; padding: 104px var(--gutter) 56px; }
   .scene.contact:not(.hero) .layer { min-height: 100vh; min-height: 100svh; align-content: center; }
   .exp .col.cv { grid-template-columns: 1fr; row-gap: 64px; }
   .about .layer { grid-template-columns: 1fr; }
   .portrait { justify-self: start; order: -1; width: 132px; margin-bottom: 30px; }
   .portrait img { border-radius: 22px; }
-  .js .mini:not(.hero-mini) { display: block; margin: 0 0 28px; aspect-ratio: 16 / 10; max-height: 32svh; max-width: 100%; }
+  .js .mini:not(.hero-mini) { display: block; margin: 30px 0 4px; aspect-ratio: 16 / 10; width: min(100%, calc(min(30svh, 230px) * 1.6)); }
 }
 @media (max-width: 1023px) and (max-height: 500px) {
   .js .mini:not(.hero-mini) { display: none; }
@@ -433,11 +434,14 @@ main, .nav .links, .chapter-t { transition: opacity .3s var(--ease), filter .3s 
   .about .big { margin-bottom: 20px; }
 }
 @media (min-width: 1024px) and (max-width: 1279px) {
-  .col { max-width: 42vw; }
+  .col { max-width: 40vw; }
   .work li { font-size: 16px; line-height: 1.5; }
-  .backdrop .diagram { width: 52vw; right: 1vw; top: 52%; }
+  .backdrop .diagram { width: 50vw; right: -1vw; top: 52%; }
 }
-html[data-lang="zh"] .links a { padding-left: 16px; padding-right: 16px; }
+@media (min-width: 721px) {
+  html[data-lang="zh"] .nav { width: 404px; }
+  html[data-lang="zh"] .links a { padding-left: 15px; padding-right: 15px; }
+}
 
 @media (max-width: 720px) {
   body { font-size: 16px; }

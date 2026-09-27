@@ -13,14 +13,16 @@
   const shortQuery = window.matchMedia('(max-height: 760px)');
   const EASE = 'cubic-bezier(.16, 1, .3, 1)';
   const GROUP = { w1: 'g-nac', w2: 'g-sbx', w3: 'g-fw', w4: 'g-team' };
-  // viewBox crops of the drawing for narrow screens: [viewBox, smallest label size on screen in px]
+  // viewBox crops of the drawing for narrow screens:
+  // [viewBox, smallest label size on screen in px, largest label size in drawing units so labels fit their boxes]
   const CROPS = {
-    hero: ['120 76 720 404', 10],
-    w1: ['-8 122 470 294', 12],
-    w2: ['250 128 528 330', 12],
-    w3: ['590 180 330 206', 12],
-    w4: ['150 390 560 350', 12],
+    hero: ['100 76 820 404', 9, 19],
+    w1: ['-8 122 470 294', 12, 20],
+    w2: ['250 128 528 330', 12, 20],
+    w3: ['590 180 330 206', 12, 20],
+    w4: ['150 390 560 350', 12, 20],
   };
+  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
 
   let reduced = rmQuery.matches;
   let pinned = root.classList.contains('pinned');
@@ -49,8 +51,11 @@
       svg.setAttribute('viewBox', crop[0]);
       box.appendChild(svg);
       const col = s.querySelector('.col');
-      col.insertBefore(box, col.firstChild);
-      minis.push({ box, svg, width: parseFloat(crop[0].split(' ')[2]), px: crop[1] });
+      // chapters: the drawing sits between the subtitle and the points, so the scene starts at its heading
+      const list = col.querySelector('ul');
+      if (list) col.insertBefore(box, list);
+      else col.insertBefore(box, col.firstChild);
+      minis.push({ box, svg, width: parseFloat(crop[0].split(' ')[2]), px: crop[1], cap: crop[2] });
     });
   }
   function sizeMiniLabels() {
@@ -58,7 +63,7 @@
       const w = m.svg.getBoundingClientRect().width;
       if (!w) return;
       const scale = w / m.width;
-      m.svg.style.setProperty('--lbl', Math.max(13, m.px / scale).toFixed(1) + 'px');
+      m.svg.style.setProperty('--lbl', Math.min(m.cap, Math.max(13, m.px / scale)).toFixed(1) + 'px');
     });
   }
 
@@ -104,13 +109,19 @@
   /* ---------- Chapter pill ---------- */
   function labelOf(scene) {
     if (!scene || scene.dataset.scene === 'hero') return null;
-    return { num: scene.dataset.num || '', text: scene.dataset[lang()] || '' };
+    return { part: scene.dataset.num ? (lang() === 'zh' ? '作品' : 'Work') : '', num: scene.dataset.num || '', text: scene.dataset[lang()] || '' };
   }
   function paintChapter() {
     const l = labelOf(active);
     chapter.classList.toggle('show', Boolean(l));
     if (!l) return;
     chapterT.textContent = '';
+    if (l.part) {
+      const w = document.createElement('span');
+      w.className = 'part';
+      w.textContent = l.part;
+      chapterT.appendChild(w);
+    }
     if (l.num) {
       const n = document.createElement('span');
       n.className = 'num';
@@ -249,19 +260,41 @@
     if (s === active) return;
     scrollToScene(s);
     setScene(s, false);
+    const url = s === scenes[0] ? window.location.pathname + window.location.search : '#' + s.id;
+    history.replaceState(null, '', url);
   }
   let lastWheel = 0;
+  let lastStep = 0;
+  let prevAbs = 0;
+  let decayed = false;
   let gestureUsed = false;
   window.addEventListener('wheel', (ev) => {
-    if (!pinned || ev.ctrlKey || Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) return;
+    if (!pinned || ev.ctrlKey) return;
     ev.preventDefault();
+    const a = Math.abs(ev.deltaY);
+    if (Math.abs(ev.deltaX) > a || a < 4) return; // sideways swipes and the faint end of momentum never move scenes
     const now = window.performance.now();
-    if (now - lastWheel > 200) gestureUsed = false; // a pause starts a new gesture; momentum never pauses
+    // a new gesture: after a pause, or a fresh flick that rises out of a decaying momentum tail
+    const rising = decayed && a > 8 && a > prevAbs * 1.4 && now - lastStep > 400;
+    if (now - lastWheel > 200 || rising) { gestureUsed = false; decayed = false; }
+    if (a < prevAbs * 0.9) decayed = true;
     lastWheel = now;
-    if (gestureUsed || Math.abs(ev.deltaY) < 4) return;
+    prevAbs = a;
+    if (gestureUsed) return;
     gestureUsed = true;
+    lastStep = now;
     step(ev.deltaY > 0 ? 1 : -1);
   }, { passive: false });
+  // native scrolling (scrollbar drag, Space on a link) settles back onto a scene
+  let settleTimer = 0;
+  window.addEventListener('scroll', () => {
+    if (!pinned) return;
+    window.clearTimeout(settleTimer);
+    settleTimer = window.setTimeout(() => {
+      const s = currentScene();
+      if (Math.abs(s.getBoundingClientRect().top) > 2) { scrollToScene(s); setScene(s, false); }
+    }, 160);
+  }, { passive: true });
   document.addEventListener('keydown', (ev) => {
     if (!pinned || ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
     const t = ev.target;
@@ -278,7 +311,7 @@
 
   /* ---------- Layout mode: pin scenes when every scene fits on one screen ---------- */
   function fitsPinned() {
-    if (reduced || window.innerWidth < 1024 || window.innerHeight < 560) return false;
+    if (reduced || !finePointer.matches || window.innerWidth < 1024 || window.innerHeight < 560) return false;
     const room = window.innerHeight - (shortQuery.matches ? 136 : 184);
     return scenes.every((s) => {
       let h = 0;
@@ -310,7 +343,7 @@
   window.addEventListener('resize', () => {
     if (window.innerWidth > 720) openMenu(false);
     // mobile browser bars change the height while scrolling; only a real resize re-anchors
-    if (!pinned && window.innerWidth === resizeWidth) { requestFrame(); return; }
+    if (window.innerWidth < 1024 && window.innerWidth === resizeWidth) { requestFrame(); return; }
     resizeWidth = window.innerWidth;
     resizing = true;
     window.clearTimeout(resizeTimer);
@@ -358,8 +391,13 @@
       const url = id === 'top' ? window.location.pathname + window.location.search : '#' + id;
       history.pushState(null, '', url);
     }
+    const target = document.getElementById(id);
     const jump = () => {
       scrollToScene(scene);
+      if (!pinned && target && target !== scene && !target.contains(scene)) {
+        window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - 110, behavior: 'instant' });
+        held = { scene, y: window.scrollY };
+      }
       if (!pinned) reveal(scene, false);
       setScene(scene, !pinned);
       exitFade();
@@ -403,6 +441,10 @@
       img.alt = l === 'zh' ? img.dataset.altZh : img.dataset.altEn;
     });
     links.setAttribute('aria-label', l === 'zh' ? '页面章节' : 'Sections');
+    document.querySelectorAll('.diagram .lbl[data-zh]').forEach((t) => {
+      if (!t.dataset.en) t.dataset.en = t.textContent;
+      t.textContent = l === 'zh' ? t.dataset.zh : t.dataset.en;
+    });
     paintChapter();
     tick();
   }
@@ -473,8 +515,21 @@
   applyLang(lang());
   if (pinned) scenes.forEach((s) => s.classList.add('is-in'));
   const start = sceneOf(hashId());
-  if (start) scrollToScene(start);
+  function land() {
+    if (!start) return;
+    scrollToScene(start);
+    const t = document.getElementById(hashId());
+    if (!pinned && t && t !== start && !t.contains(start)) {
+      window.scrollTo({ top: t.getBoundingClientRect().top + window.scrollY - 110, behavior: 'instant' });
+      held = { scene: start, y: window.scrollY };
+    }
+  }
+  if (start) land();
   else window.scrollTo(0, 0);
+  // the browser's own jump to #fragment can arrive after this script; land again unless the visitor has moved
+  let touched = false;
+  ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach((t) => window.addEventListener(t, () => { touched = true; }, { once: true, passive: true }));
+  window.addEventListener('load', () => { if (start && !touched) { land(); frame(); exitFade(); } });
   const first = start || currentScene();
   setScene(first, true);
   setMode();
