@@ -71,33 +71,59 @@
   lines.forEach((el) => { el._scene = el.closest('.scene'); });
 
   /* ---------- Scene motion: each scene moves as one block, in depth ---------- */
-  const IN = { down: 0.92, up: 1.08 };   // where the arriving scene comes from
-  const OUT = { down: 1.08, up: 0.92 };  // where the leaving scene goes
+  // scale and opacity only: a blur on two full-screen layers costs about half the frames
+  const IN = { down: 0.9, up: 1.1 };    // where the arriving scene comes from
+  const OUT = { down: 1.1, up: 0.9 };   // where the leaving scene goes
+  const LEAD = 370;                     // how long a fully visible leaving scene has before the next one starts
   function layerOf(scene) { return scene.querySelector('.layer'); }
   function zoomIn(scene, from, delay, duration) {
-    if (!canAnimate()) return;
+    if (!canAnimate()) return 0;
     const l = layerOf(scene);
-    let first = { opacity: 0, transform: 'scale(' + from + ')', filter: 'blur(8px)' };
+    l._exitAt = 0;
+    let first = { opacity: 0, transform: 'scale(' + from + ')' };
     const cs = getComputedStyle(l);
     if (l.getAnimations().length && +cs.opacity > 0.02) {
       // coming back to a scene that has not finished leaving: carry on from where it is, no blink
-      first = { opacity: cs.opacity, transform: cs.transform === 'none' ? 'scale(1)' : cs.transform, filter: cs.filter === 'none' ? 'blur(0px)' : cs.filter };
+      first = { opacity: cs.opacity, transform: cs.transform === 'none' ? 'scale(1)' : cs.transform };
       delay = 0;
     }
-    l.getAnimations().forEach((a) => a.cancel());
-    l.animate([first, { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' }],
+    l.getAnimations().forEach((x) => x.cancel());
+    l.animate([first, { opacity: 1, transform: 'scale(1)' }],
       { duration: duration || 1100, delay, easing: EASE, fill: 'backwards' });
+    return delay;
   }
   function zoomOut(scene, to) {
     if (!canAnimate()) return;
     const l = layerOf(scene);
-    const from = getComputedStyle(l);
-    const start = { opacity: from.opacity, transform: from.transform === 'none' ? 'scale(1)' : from.transform, filter: from.filter === 'none' ? 'blur(0px)' : from.filter };
-    l.getAnimations().forEach((a) => a.cancel());
+    const cs = getComputedStyle(l);
+    const o = +cs.opacity;
+    const t0 = cs.transform === 'none' ? 'scale(1)' : cs.transform;
+    l.getAnimations().forEach((x) => x.cancel());
+    l._exitAt = 0;
+    if (o < 0.02) return;
+    l._exitAt = window.performance.now();
+    l._exitLead = LEAD * Math.min(1, o);
+    // the block moves in depth while it is still readable, then fades
     l.animate(
-      [Object.assign({ offset: 0 }, start), { opacity: 0, offset: 0.6 }, { opacity: 0, transform: 'scale(' + to + ')', filter: 'blur(8px)', offset: 1 }],
-      { duration: 700, easing: 'cubic-bezier(.4, 0, .2, 1)' }
+      [
+        { opacity: o, transform: t0, offset: 0 },
+        { opacity: 0.8 * o, transform: 'scale(' + (1 + (to - 1) * 0.55) + ')', offset: 0.45 },
+        { opacity: 0, transform: 'scale(' + to + ')', offset: 1 },
+      ],
+      { duration: Math.round(560 * Math.max(0.4, o)), easing: 'cubic-bezier(.33, 0, .67, 1)' }
     );
+  }
+  // the arriving scene waits for whichever scenes are still visibly leaving
+  function arrivalDelay(scene) {
+    const now = window.performance.now();
+    let d = 0;
+    scenes.forEach((s) => {
+      if (s === scene) return;
+      const l = layerOf(s);
+      if (+getComputedStyle(l).opacity <= 0.3) return;
+      d = Math.max(d, l._exitAt ? Math.max(0, l._exitLead - (now - l._exitAt)) : LEAD);
+    });
+    return Math.round(d);
   }
 
   function reveal(scene, animate, baseDelay) {
@@ -182,6 +208,8 @@
     active = scene;
     const dir = prev && scenes.indexOf(scene) < scenes.indexOf(prev) ? 'up' : 'down';
     root.setAttribute('data-dir', dir);
+    // an invisible drawing takes its new framing at once and only fades in
+    if (drawing) root.classList.toggle('dg-cut', +getComputedStyle(drawing).opacity < 0.05);
     root.setAttribute('data-scene', scene.dataset.scene);
     const target = scene.dataset.nav || '';
     navLinks.forEach((a) => {
@@ -189,16 +217,17 @@
       else a.removeAttribute('aria-current');
     });
     if (pinned) {
-      let prevShown = false;
       if (prev) {
-        prevShown = +getComputedStyle(layerOf(prev)).opacity > 0.05;
         if (!instant) zoomOut(prev, OUT[dir]); // before the class change: it must start from what is on screen
         prev.classList.remove('is-active', 'is-live');
       }
       scene.classList.add('is-active');
       if (instant) scene.classList.add('is-live');
-      else later(scene, () => { if (scene === active) scene.classList.add('is-live'); }, 220);
-      if (!instant) zoomIn(scene, IN[dir], prevShown ? 240 : 0);
+      else {
+        const delay = zoomIn(scene, IN[dir], arrivalDelay(scene));
+        // clickable once it is about half visible
+        later(scene, () => { if (scene === active) scene.classList.add('is-live'); }, delay + 120);
+      }
     }
     if (!instant && prev) redraw(scene);
     swapChapter(prev, instant);
@@ -263,6 +292,7 @@
   window.addEventListener('scroll', requestFrame, { passive: true });
 
   /* ---------- Pinned layout: one gesture or key press moves exactly one scene ---------- */
+  let lastKeyStep = 0;
   function step(delta) {
     const i = Math.max(0, Math.min(scenes.length - 1, scenes.indexOf(active) + delta));
     const s = scenes[i];
@@ -271,12 +301,19 @@
     setScene(s, false);
     const url = s === scenes[0] ? window.location.pathname + window.location.search : '#' + s.id;
     history.replaceState(null, '', url);
+    const f = document.activeElement;
+    if (f && f !== document.body && f.closest && f.closest('.scene')) {
+      s.setAttribute('tabindex', '-1');
+      s.focus({ preventScroll: true });
+    }
   }
   let lastWheel = 0;
   let lastStep = 0;
   let prevAbs = 0;
   let peak = 0;
   let ups = 0;
+  let bigRise = 0;
+  let prevSign = 0;
   let travel = 0;
   let gestureUsed = false;
   window.addEventListener('wheel', (ev) => {
@@ -286,15 +323,22 @@
     const unit = ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? window.innerHeight : 1;
     const dy = ev.deltaY * unit;
     const a = Math.abs(dy);
+    const sign = Math.sign(dy);
     const now = window.performance.now();
-    // a new gesture: after a pause, or a fresh flick rising out of a momentum tail
-    // (two rises in a row; one coalesced event in the tail is not a flick)
+    // a new gesture starts after a pause, or when a fresh flick rises out of a momentum tail:
+    // two rises in a row, or one big rise that holds (Chrome merges the first frames of a flick
+    // when a frame is dropped); one merged event inside a tail drops straight back and does not count
     ups = a > prevAbs * 1.3 && a > 2 ? ups + 1 : 0;
-    const rising = peak > 0 && ups >= 2 && a > 8 && prevAbs < peak * 0.7 && now - lastStep > 400;
-    if (now - lastWheel > 200 || rising) { gestureUsed = false; peak = 0; travel = 0; }
+    const held = bigRise > 0 && a >= bigRise * 0.9;
+    bigRise = peak > 0 && a > 8 && a > prevAbs * 2.5 && prevAbs < peak * 0.35 ? a : 0;
+    const rising = peak > 0 && ((ups >= 2 && a > 8 && prevAbs < peak * 0.7) || held) && now - lastStep > 300;
+    const flip = sign !== 0 && prevSign !== 0 && sign !== prevSign && a > 2; // a momentum tail never turns round
+    const notch = a >= 40 && Math.abs(a - prevAbs) < 1 && now - lastStep > 600;  // a mouse wheel rolled steadily
+    if (now - lastWheel > 200 || rising || flip || notch) { gestureUsed = false; peak = 0; travel = 0; }
     peak = Math.max(peak, a);
     lastWheel = now;
     prevAbs = a;
+    if (sign) prevSign = sign;
     if (gestureUsed) return;
     travel += dy;
     if (Math.abs(travel) < 30) return;
@@ -308,6 +352,7 @@
     if (!pinned) return;
     window.clearTimeout(settleTimer);
     settleTimer = window.setTimeout(() => {
+      if (resizing) return;
       const s = currentScene();
       if (Math.abs(s.getBoundingClientRect().top) > 2) { scrollToScene(s); setScene(s, false); }
     }, 160);
@@ -318,11 +363,16 @@
     if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
     const onControl = t.closest && t.closest('button, a, summary');
     let d = 0;
+    if (ev.repeat && window.performance.now() - lastKeyStep < 700) {
+      if (['PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', ' '].includes(ev.key)) ev.preventDefault();
+      return;
+    }
     if (ev.key === 'PageDown' || ev.key === 'ArrowDown') d = 1;
     else if (ev.key === 'PageUp' || ev.key === 'ArrowUp') d = -1;
     else if (ev.key === ' ' && !onControl) d = ev.shiftKey ? -1 : 1;
     if (!d) return;
     ev.preventDefault();
+    lastKeyStep = window.performance.now();
     step(d);
   });
 
@@ -363,6 +413,7 @@
     if (window.innerWidth < 1024 && window.innerWidth === resizeWidth) { requestFrame(); return; }
     resizeWidth = window.innerWidth;
     resizing = true;
+    window.clearTimeout(settleTimer);
     window.clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
       setMode();
@@ -440,7 +491,11 @@
     if (!pinned || !node) return;
     const el = node.nodeType === 1 ? node : node.parentElement;
     const s = el && el.closest && el.closest('.scene');
-    if (s && s !== active) { scrollToScene(s); setScene(s, false); }
+    if (s && s !== active) {
+      scrollToScene(s);
+      setScene(s, false);
+      history.replaceState(null, '', s === scenes[0] ? window.location.pathname + window.location.search : '#' + s.id);
+    }
   }
   document.addEventListener('focusin', (ev) => bringForward(ev.target));
   document.addEventListener('selectionchange', () => {

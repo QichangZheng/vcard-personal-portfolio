@@ -180,7 +180,8 @@ html:not(.js) .lang { display: none; }
   transform: translateY(-47%);
   transform-origin: 50% 50%;
   overflow: visible;
-  transition: opacity 1.1s var(--ease), transform 1.6s var(--ease-out);
+  /* ease-in-out: the camera follows the text instead of whipping away in the first frames */
+  transition: opacity 1.1s var(--ease), transform 1.3s cubic-bezier(.65, 0, .35, 1);
 }
 .diagram { font-family: var(--font); }
 .diagram .n, .diagram .e {
@@ -241,17 +242,18 @@ html:not(.js) .lang { display: none; }
 [data-scene="w1"] .backdrop .diagram { transform: translate(22%, -24%) scale(1.3); }
 [data-scene="w2"] .backdrop .diagram { transform: translate(-6%, -28%) scale(1.3); }
 [data-scene="w3"] .backdrop .diagram { transform: translate(-24%, -26%) scale(1.3); }
-[data-scene="w4"] .backdrop .diagram { transform: translate(12%, -64%) scale(1.3); }
+[data-scene="w4"] .backdrop .diagram { transform: translate(14%, -50%) scale(1.2); }
 @media (min-width: 1024px) and (max-width: 1279px) {
   [data-scene="w2"] .backdrop .diagram { transform: translate(-10%, -32%) scale(1.3); }
 }
 /* leaving the drawing for a text-only scene: fade quickly so it never shows through the arriving block */
 [data-scene="about"] .backdrop .diagram,
 [data-scene="exp"] .backdrop .diagram,
-[data-scene="contact"] .backdrop .diagram { transition: opacity .45s var(--ease), transform 1.6s var(--ease-out); }
-/* coming back up into the drawing: it was invisible, so it takes its place at once and only fades in */
-html[data-dir="up"][data-scene="w4"] .backdrop .diagram,
-html[data-dir="up"][data-scene="hero"] .backdrop .diagram { transition: opacity 1.1s var(--ease), transform 0s; }
+[data-scene="contact"] .backdrop .diagram { transition: opacity .45s var(--ease), transform 1.3s cubic-bezier(.65, 0, .35, 1); }
+/* the drawing was invisible when the scene changed: it takes its new framing at once,
+   and fades in only after the leaving text block has gone */
+html.dg-cut .backdrop .diagram { transition: opacity 1s var(--ease) .3s, transform 0s; }
+html:not(.js) .backdrop { display: none; }
 @media (min-width: 1280px) {
   html.pinned .work .col { max-width: min(35rem, 36vw); }
 }
