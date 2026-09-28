@@ -245,6 +245,7 @@ html:not(.js) .lang { display: none; }
 [data-scene="w4"] .backdrop .diagram { transform: translate(14%, -50%) scale(1.2); }
 @media (min-width: 1024px) and (max-width: 1279px) {
   [data-scene="w2"] .backdrop .diagram { transform: translate(-10%, -32%) scale(1.3); }
+  html[data-scene="hero"] .backdrop .diagram { transform: translate(-5%, -47%); }
 }
 /* leaving the drawing for a text-only scene: fade quickly so it never shows through the arriving block */
 [data-scene="about"] .backdrop .diagram,
@@ -434,7 +435,45 @@ html[data-lang="zh"] :is(.intro-word, .intro-final) { letter-spacing: .02em; }
 #name .w { display: inline-block; }   /* the same box as the intro words, so the hand-over lands exactly */
 html.intro-on .hero h1 { visibility: hidden; }
 html.intro-on :is(.hero .lede, .hero .role, .hero-mini, .nav) { opacity: 0; }
+html.intro-on .nav { pointer-events: none; visibility: hidden; }
+html.intro-on.intro-out .nav { visibility: visible; }
+/* the greetings are quieter than the name: the big type is saved for 我是郑其昌 */
+.intro-word { font-size: clamp(30px, 3.9vw, 54px); font-weight: 500; }
+/* if the script never runs, the intro gets out of the way on its own */
+html.intro-on:not(.intro-run) .intro { animation: intro-bail .4s 4s forwards; }
+html.intro-on:not(.intro-run) .hero h1 { animation: intro-show 0s 4.2s forwards; }
+html.intro-on:not(.intro-run) :is(.hero .lede, .hero .role, .hero-mini, .nav) { animation: intro-show .4s 4.2s forwards; }
+@keyframes intro-bail { to { opacity: 0; visibility: hidden; } }
+@keyframes intro-show { to { opacity: 1; visibility: visible; } }
 html.intro-on.intro-out :is(.hero .lede, .hero .role, .hero-mini, .nav) { opacity: 1; transition: opacity .9s var(--ease) .6s; }
+
+/* the quiet alternative: three typed lines, then the page (html.intro-type, ?intro=type) */
+.typer { display: none; position: relative; grid-area: 1 / 1; max-width: 100%; }
+html.intro-type .typer { display: block; }
+html.intro-type .intro :is(.intro-word, .intro-final) { display: none; }
+.typer p { margin: 0; }
+.typer .ty1 { font-size: clamp(32px, 4.4vw, 62px); line-height: 1.15; font-weight: 600; letter-spacing: -.035em; color: var(--ink); }
+.typer .w { display: inline-block; transform-origin: 0 0; }
+.typer .nm { white-space: nowrap; }
+.typer .ty2, .typer .ty3 { font-size: clamp(19px, 1.8vw, 26px); line-height: 1.55; letter-spacing: -.005em; }
+.typer .ty2 { margin-top: 1em; color: var(--ink2); }
+.typer .ty3 { margin-top: .2em; color: var(--mute); }
+html[data-lang="zh"] .typer .ty1 { letter-spacing: .02em; }   /* same tracking as the hero name it becomes */
+html[data-lang="zh"] .typer :is(.ty2, .ty3) { letter-spacing: .06em; }
+.typer .c { opacity: 0; transition: opacity .16s linear; }
+.typer .c.on { opacity: 1; }
+.typer .caret {
+  display: inline-block;
+  width: 2px; height: 1em;
+  margin-left: .06em;
+  vertical-align: -.12em;
+  border-radius: 1px;
+  background: var(--accent);
+  animation: caret 1.05s steps(1) infinite;
+}
+.typer.typing .caret { animation: none; }
+@keyframes caret { 50% { opacity: 0; } }
+
 
 /* ---------- Pinned scenes: content stays put, scenes change in place ---------- */
 html.pinned .scene { height: 100vh; height: 100svh; }
