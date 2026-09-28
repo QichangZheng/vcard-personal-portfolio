@@ -77,14 +77,16 @@
   function zoomIn(scene, from, delay, duration) {
     if (!canAnimate()) return;
     const l = layerOf(scene);
+    let first = { opacity: 0, transform: 'scale(' + from + ')', filter: 'blur(8px)' };
+    const cs = getComputedStyle(l);
+    if (l.getAnimations().length && +cs.opacity > 0.02) {
+      // coming back to a scene that has not finished leaving: carry on from where it is, no blink
+      first = { opacity: cs.opacity, transform: cs.transform === 'none' ? 'scale(1)' : cs.transform, filter: cs.filter === 'none' ? 'blur(0px)' : cs.filter };
+      delay = 0;
+    }
     l.getAnimations().forEach((a) => a.cancel());
-    l.animate(
-      [
-        { opacity: 0, transform: 'scale(' + from + ')', filter: 'blur(8px)' },
-        { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' },
-      ],
-      { duration: duration || 1100, delay, easing: EASE, fill: 'backwards' }
-    );
+    l.animate([first, { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' }],
+      { duration: duration || 1100, delay, easing: EASE, fill: 'backwards' });
   }
   function zoomOut(scene, to) {
     if (!canAnimate()) return;
@@ -93,7 +95,7 @@
     const start = { opacity: from.opacity, transform: from.transform === 'none' ? 'scale(1)' : from.transform, filter: from.filter === 'none' ? 'blur(0px)' : from.filter };
     l.getAnimations().forEach((a) => a.cancel());
     l.animate(
-      [start, { opacity: 0, transform: 'scale(' + to + ')', filter: 'blur(8px)' }],
+      [Object.assign({ offset: 0 }, start), { opacity: 0, offset: 0.6 }, { opacity: 0, transform: 'scale(' + to + ')', filter: 'blur(8px)', offset: 1 }],
       { duration: 700, easing: 'cubic-bezier(.4, 0, .2, 1)' }
     );
   }
@@ -187,14 +189,16 @@
       else a.removeAttribute('aria-current');
     });
     if (pinned) {
+      let prevShown = false;
       if (prev) {
+        prevShown = +getComputedStyle(layerOf(prev)).opacity > 0.05;
+        if (!instant) zoomOut(prev, OUT[dir]); // before the class change: it must start from what is on screen
         prev.classList.remove('is-active', 'is-live');
-        if (!instant) zoomOut(prev, OUT[dir]);
       }
       scene.classList.add('is-active');
       if (instant) scene.classList.add('is-live');
       else later(scene, () => { if (scene === active) scene.classList.add('is-live'); }, 220);
-      if (!instant) zoomIn(scene, IN[dir], 180);
+      if (!instant) zoomIn(scene, IN[dir], prevShown ? 240 : 0);
     }
     if (!instant && prev) redraw(scene);
     swapChapter(prev, instant);
@@ -207,7 +211,7 @@
     held = null;
     const max = document.documentElement.scrollHeight - window.innerHeight;
     if (window.scrollY >= max - 2) return scenes[scenes.length - 1];
-    const probe = window.innerHeight * (pinned ? 0.5 : 0.55);
+    const probe = window.innerHeight * (pinned ? 0.5 : 0.3);
     let cur = scenes[0];
     for (const s of scenes) {
       if (s.getBoundingClientRect().top <= probe) cur = s;
@@ -272,24 +276,31 @@
   let lastStep = 0;
   let prevAbs = 0;
   let peak = 0;
+  let ups = 0;
+  let travel = 0;
   let gestureUsed = false;
   window.addEventListener('wheel', (ev) => {
-    if (!pinned || ev.ctrlKey) return;
+    // sideways swipes stay with the browser (two-finger back/forward)
+    if (!pinned || ev.ctrlKey || Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) return;
     ev.preventDefault();
-    const a = Math.abs(ev.deltaY);
-    if (Math.abs(ev.deltaX) > a || a < 4) return; // sideways swipes and the faint end of momentum never move scenes
+    const unit = ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? window.innerHeight : 1;
+    const dy = ev.deltaY * unit;
+    const a = Math.abs(dy);
     const now = window.performance.now();
-    // a new gesture: after a pause, or a fresh flick that rises out of a momentum tail
-    // (the tail has fallen below half its peak; a new flick jumps well above the tail)
-    const rising = peak > 0 && prevAbs < peak * 0.5 && a > 8 && a > prevAbs * 1.4 && now - lastStep > 400;
-    if (now - lastWheel > 200 || rising) { gestureUsed = false; peak = 0; }
+    // a new gesture: after a pause, or a fresh flick rising out of a momentum tail
+    // (two rises in a row; one coalesced event in the tail is not a flick)
+    ups = a > prevAbs * 1.3 && a > 2 ? ups + 1 : 0;
+    const rising = peak > 0 && ups >= 2 && a > 8 && prevAbs < peak * 0.7 && now - lastStep > 400;
+    if (now - lastWheel > 200 || rising) { gestureUsed = false; peak = 0; travel = 0; }
     peak = Math.max(peak, a);
     lastWheel = now;
     prevAbs = a;
     if (gestureUsed) return;
+    travel += dy;
+    if (Math.abs(travel) < 30) return;
     gestureUsed = true;
     lastStep = now;
-    step(ev.deltaY > 0 ? 1 : -1);
+    step(travel > 0 ? 1 : -1);
   }, { passive: false });
   // native scrolling (scrollbar drag, Space on a link) settles back onto a scene
   let settleTimer = 0;

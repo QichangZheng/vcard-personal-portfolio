@@ -164,6 +164,13 @@ html:not(.js) .lang { display: none; }
   pointer-events: none;
   overflow: hidden;
   view-transition-name: backdrop;
+  /* the drawing fades out softly before it reaches the text column */
+  --text-edge: calc(var(--gutter) + min(35rem, 36vw));
+  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--text-edge) + 12px), #000 calc(var(--text-edge) + 110px));
+  mask-image: linear-gradient(to right, transparent calc(var(--text-edge) + 12px), #000 calc(var(--text-edge) + 110px));
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .backdrop { --text-edge: calc(var(--gutter) + 40vw); }
 }
 .backdrop .diagram {
   position: absolute;
@@ -173,7 +180,7 @@ html:not(.js) .lang { display: none; }
   transform: translateY(-47%);
   transform-origin: 50% 50%;
   overflow: visible;
-  transition: opacity 1.1s var(--ease), transform 1.6s var(--ease-out), transform-origin 1.6s var(--ease-out);
+  transition: opacity 1.1s var(--ease), transform 1.6s var(--ease-out);
 }
 .diagram { font-family: var(--font); }
 .diagram .n, .diagram .e {
@@ -228,12 +235,23 @@ html:not(.js) .lang { display: none; }
 [data-scene="w3"] .backdrop .g-fw .lbl,
 [data-scene="w4"] .backdrop .g-team .lbl { fill: var(--ink); }
 [data-scene="w2"] .backdrop .slot.busy { fill: rgba(63, 91, 208, .1); }
-/* the camera moves in on the part of the drawing each chapter is about */
-/* (the sideways shift keeps the enlarged drawing clear of the text column) */
-[data-scene="w1"] .backdrop .diagram { transform: translate(5%, -47%) scale(1.2); transform-origin: 33% 32%; }
-[data-scene="w2"] .backdrop .diagram { transform: translate(10%, -47%) scale(1.2); transform-origin: 61% 35%; }
-[data-scene="w3"] .backdrop .diagram { transform: translate(13%, -47%) scale(1.2); transform-origin: 83% 33%; }
-[data-scene="w4"] .backdrop .diagram { transform: translate(7%, -47%) scale(1.2); transform-origin: 42% 86%; }
+/* the camera moves in on the part of the drawing each chapter is about: one zoom (1.3x) from the hero,
+   then pans between chapters. Values come from tools/camera.js: the highlighted part stays whole on screen,
+   clear of the text by 40px or more, at 1024-1920px wide (the NAC outline itself may leave the frame). */
+[data-scene="w1"] .backdrop .diagram { transform: translate(22%, -24%) scale(1.3); }
+[data-scene="w2"] .backdrop .diagram { transform: translate(-6%, -28%) scale(1.3); }
+[data-scene="w3"] .backdrop .diagram { transform: translate(-24%, -26%) scale(1.3); }
+[data-scene="w4"] .backdrop .diagram { transform: translate(12%, -64%) scale(1.3); }
+@media (min-width: 1024px) and (max-width: 1279px) {
+  [data-scene="w2"] .backdrop .diagram { transform: translate(-10%, -32%) scale(1.3); }
+}
+/* leaving the drawing for a text-only scene: fade quickly so it never shows through the arriving block */
+[data-scene="about"] .backdrop .diagram,
+[data-scene="exp"] .backdrop .diagram,
+[data-scene="contact"] .backdrop .diagram { transition: opacity .45s var(--ease), transform 1.6s var(--ease-out); }
+/* coming back up into the drawing: it was invisible, so it takes its place at once and only fades in */
+html[data-dir="up"][data-scene="w4"] .backdrop .diagram,
+html[data-dir="up"][data-scene="hero"] .backdrop .diagram { transition: opacity 1.1s var(--ease), transform 0s; }
 @media (min-width: 1280px) {
   html.pinned .work .col { max-width: min(35rem, 36vw); }
 }
@@ -405,8 +423,11 @@ html::view-transition { pointer-events: none; }
 @keyframes vt-in { from { opacity: 0; filter: blur(4px); } }
 
 /* fallback when View Transitions are not available */
-main, .nav .links, .chapter-t { transition: opacity .3s var(--ease), filter .3s var(--ease); }
-.swapping main, .swapping .nav .links, .swapping .chapter-t { opacity: 0; filter: blur(4px); }
+main { transition: opacity .3s var(--ease); }
+.nav .links, .chapter-t { transition: opacity .3s var(--ease), filter .3s var(--ease); }
+/* no filter on <main>: it would become the containing block of the pinned (fixed) layers */
+.swapping main { opacity: 0; }
+.swapping .nav .links, .swapping .chapter-t { opacity: 0; filter: blur(4px); }
 
 /* ---------- Narrow screens: flowing layout, one drawing per chapter ---------- */
 @media (max-width: 1023px) {
@@ -490,7 +511,7 @@ main, .nav .links, .chapter-t { transition: opacity .3s var(--ease), filter .3s 
 @media print {
   .backdrop, .nav, .veil, .chapter, .skip, .mini { display: none !important; }
   html.pinned .scene { height: auto; }
-  .layer, html.pinned .layer { position: static; min-height: 0; padding: 24px 0; opacity: 1; filter: none; transform: none; }
+  .layer, html.pinned .layer { position: static; min-height: 0; padding: 24px 0; opacity: 1 !important; filter: none !important; transform: none !important; }
   .js .scene .r { opacity: 1 !important; filter: none !important; transform: none !important; }
   .col, .about .col, .exp .col, .edu .col { max-width: none; }
   .foot { position: static; margin-top: 24px; }
