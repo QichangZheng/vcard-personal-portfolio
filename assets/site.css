@@ -171,9 +171,9 @@ html:not(.js) .lang { display: none; }
   width: min(50vw, 860px);
   height: auto; max-height: 76vh;
   transform: translateY(-47%);
-  transform-origin: 60% 50%;
+  transform-origin: 50% 50%;
   overflow: visible;
-  transition: opacity 1.1s var(--ease), transform 1.4s var(--ease-out);
+  transition: opacity 1.1s var(--ease), transform 1.6s var(--ease-out), transform-origin 1.6s var(--ease-out);
 }
 .diagram { font-family: var(--font); }
 .diagram .n, .diagram .e {
@@ -228,6 +228,15 @@ html:not(.js) .lang { display: none; }
 [data-scene="w3"] .backdrop .g-fw .lbl,
 [data-scene="w4"] .backdrop .g-team .lbl { fill: var(--ink); }
 [data-scene="w2"] .backdrop .slot.busy { fill: rgba(63, 91, 208, .1); }
+/* the camera moves in on the part of the drawing each chapter is about */
+/* (the sideways shift keeps the enlarged drawing clear of the text column) */
+[data-scene="w1"] .backdrop .diagram { transform: translate(5%, -47%) scale(1.2); transform-origin: 33% 32%; }
+[data-scene="w2"] .backdrop .diagram { transform: translate(10%, -47%) scale(1.2); transform-origin: 61% 35%; }
+[data-scene="w3"] .backdrop .diagram { transform: translate(13%, -47%) scale(1.2); transform-origin: 83% 33%; }
+[data-scene="w4"] .backdrop .diagram { transform: translate(7%, -47%) scale(1.2); transform-origin: 42% 86%; }
+@media (min-width: 1280px) {
+  html.pinned .work .col { max-width: min(35rem, 36vw); }
+}
 
 /* per-chapter drawing inside the text flow (narrow screens only, built by JS) */
 .mini { display: none; overflow: hidden; }
@@ -378,15 +387,10 @@ html.pinned .layer {
   padding: 120px var(--gutter) 64px;
   opacity: 0;
   pointer-events: none;
-  transition: opacity .45s var(--ease);
+  /* scenes zoom as one block: forward = the old one grows past you, the new one arrives from the distance */
+  transform-origin: 36% 50%;
 }
-html.pinned .scene.leaving .layer {
-  filter: blur(6px);
-  transform: translateY(var(--out, -18px));
-  transition: opacity .45s var(--ease), filter .45s var(--ease), transform .6s var(--ease);
-}
-html.pinned[data-dir="up"] .layer { --out: 18px; }
-html.pinned .scene.is-active .layer { opacity: 1; transition: opacity 0s linear .2s; }
+html.pinned .scene.is-active .layer { opacity: 1; }
 html.pinned .scene.is-live .layer > * { pointer-events: auto; }
 .mode-switch .layer, .mode-switch .backdrop .diagram { transition: none !important; }
 html.pinned .veil { display: none; }

@@ -70,29 +70,38 @@
   const lines = Array.from(document.querySelectorAll('.scene .r'));
   lines.forEach((el) => { el._scene = el.closest('.scene'); });
 
-  /* ---------- Entrances ---------- */
-  function enter(scene, dir, baseDelay) {
+  /* ---------- Scene motion: each scene moves as one block, in depth ---------- */
+  const IN = { down: 0.92, up: 1.08 };   // where the arriving scene comes from
+  const OUT = { down: 1.08, up: 0.92 };  // where the leaving scene goes
+  function layerOf(scene) { return scene.querySelector('.layer'); }
+  function zoomIn(scene, from, delay, duration) {
     if (!canAnimate()) return;
-    const from = dir === 'up' ? -12 : 12;
-    let i = 0;
-    scene.querySelectorAll('.r').forEach((el) => {
-      if (el.offsetParent === null) return;
-      el.getAnimations().forEach((a) => a.cancel());
-      el.animate(
-        [
-          { opacity: 0, transform: 'translateY(' + from + 'px)', filter: 'blur(6px)' },
-          { opacity: 1, transform: 'translateY(0)', filter: 'blur(0px)' },
-        ],
-        { duration: 750, delay: baseDelay + Math.min(i, 5) * 80, easing: EASE, fill: 'backwards' }
-      );
-      i += 1;
-    });
+    const l = layerOf(scene);
+    l.getAnimations().forEach((a) => a.cancel());
+    l.animate(
+      [
+        { opacity: 0, transform: 'scale(' + from + ')', filter: 'blur(8px)' },
+        { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' },
+      ],
+      { duration: duration || 1100, delay, easing: EASE, fill: 'backwards' }
+    );
+  }
+  function zoomOut(scene, to) {
+    if (!canAnimate()) return;
+    const l = layerOf(scene);
+    const from = getComputedStyle(l);
+    const start = { opacity: from.opacity, transform: from.transform === 'none' ? 'scale(1)' : from.transform, filter: from.filter === 'none' ? 'blur(0px)' : from.filter };
+    l.getAnimations().forEach((a) => a.cancel());
+    l.animate(
+      [start, { opacity: 0, transform: 'scale(' + to + ')', filter: 'blur(8px)' }],
+      { duration: 700, easing: 'cubic-bezier(.4, 0, .2, 1)' }
+    );
   }
 
   function reveal(scene, animate, baseDelay) {
     if (scene.classList.contains('is-in')) return;
     scene.classList.add('is-in');
-    if (animate) enter(scene, 'down', baseDelay == null ? 60 : baseDelay);
+    if (animate) zoomIn(scene, 0.94, baseDelay == null ? 60 : baseDelay, 1000);
   }
 
   if ('IntersectionObserver' in window) {
@@ -180,16 +189,12 @@
     if (pinned) {
       if (prev) {
         prev.classList.remove('is-active', 'is-live');
-        if (!instant) {
-          prev.classList.add('leaving');
-          later(prev, () => prev.classList.remove('leaving'), 650);
-        }
+        if (!instant) zoomOut(prev, OUT[dir]);
       }
-      scene.classList.remove('leaving');
       scene.classList.add('is-active');
       if (instant) scene.classList.add('is-live');
       else later(scene, () => { if (scene === active) scene.classList.add('is-live'); }, 220);
-      if (!instant) enter(scene, dir, 220);
+      if (!instant) zoomIn(scene, IN[dir], 180);
     }
     if (!instant && prev) redraw(scene);
     swapChapter(prev, instant);
@@ -266,7 +271,7 @@
   let lastWheel = 0;
   let lastStep = 0;
   let prevAbs = 0;
-  let decayed = false;
+  let peak = 0;
   let gestureUsed = false;
   window.addEventListener('wheel', (ev) => {
     if (!pinned || ev.ctrlKey) return;
@@ -274,10 +279,11 @@
     const a = Math.abs(ev.deltaY);
     if (Math.abs(ev.deltaX) > a || a < 4) return; // sideways swipes and the faint end of momentum never move scenes
     const now = window.performance.now();
-    // a new gesture: after a pause, or a fresh flick that rises out of a decaying momentum tail
-    const rising = decayed && a > 8 && a > prevAbs * 1.4 && now - lastStep > 400;
-    if (now - lastWheel > 200 || rising) { gestureUsed = false; decayed = false; }
-    if (a < prevAbs * 0.9) decayed = true;
+    // a new gesture: after a pause, or a fresh flick that rises out of a momentum tail
+    // (the tail has fallen below half its peak; a new flick jumps well above the tail)
+    const rising = peak > 0 && prevAbs < peak * 0.5 && a > 8 && a > prevAbs * 1.4 && now - lastStep > 400;
+    if (now - lastWheel > 200 || rising) { gestureUsed = false; peak = 0; }
+    peak = Math.max(peak, a);
     lastWheel = now;
     prevAbs = a;
     if (gestureUsed) return;
@@ -329,7 +335,7 @@
       root.classList.add('mode-switch');
       pinned = want;
       root.classList.toggle('pinned', pinned);
-      scenes.forEach((s) => s.classList.remove('is-active', 'is-live', 'leaving'));
+      scenes.forEach((s) => { s.classList.remove('is-active', 'is-live'); layerOf(s).getAnimations().forEach((a) => a.cancel()); });
       if (pinned) scenes.forEach((s) => s.classList.add('is-in'));
       if (active && pinned) active.classList.add('is-active', 'is-live');
       void root.offsetHeight;
@@ -537,7 +543,7 @@
     scenes.forEach((s) => s.classList.add('is-in'));
     root.classList.add('drawn', 'settled');
   } else {
-    if (pinned) enter(first, 'down', 150);
+    if (pinned) zoomIn(first, 0.96, 150, 1200);
     else reveal(first, true, 150);
     window.requestAnimationFrame(() => window.requestAnimationFrame(() => root.classList.add('drawn')));
     window.setTimeout(() => root.classList.add('settled'), 3600);
