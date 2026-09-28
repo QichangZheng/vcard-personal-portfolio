@@ -399,6 +399,43 @@ html[data-lang="zh"] .contact h2 { letter-spacing: .02em; }
 .foot { position: absolute; left: var(--gutter); bottom: 28px; color: var(--faint); }
 .foot small { font-size: 12px; }
 
+/* ---------- Intro: greetings, then the name travels into the hero ---------- */
+.intro { display: none; }
+html.intro-on .intro {
+  display: grid; place-items: center;
+  position: fixed; inset: 0; z-index: 60;
+  padding: 0 var(--gutter);
+  pointer-events: none;
+}
+.intro .curtain { position: absolute; inset: 0; background: var(--bg); }
+.intro-word, .intro-final {
+  position: relative;
+  grid-area: 1 / 1;
+  margin: 0;
+  font-size: clamp(46px, 6.4vw, 88px);   /* the same as the hero name, so the name only has to move */
+  line-height: 1.02;
+  font-weight: 600;
+  letter-spacing: -.035em;
+  color: var(--ink);
+  text-align: center;
+}
+html[data-lang="zh"] :is(.intro-word, .intro-final) { letter-spacing: .02em; }
+.intro-word .dot {
+  display: inline-block;
+  width: .14em; height: .14em;
+  margin-right: .34em;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: .2em;
+}
+.intro-final { opacity: 0; }
+.intro-final .nm { white-space: nowrap; }
+.intro-final .w { display: inline-block; transform-origin: 0 0; }
+#name .w { display: inline-block; }   /* the same box as the intro words, so the hand-over lands exactly */
+html.intro-on .hero h1 { visibility: hidden; }
+html.intro-on :is(.hero .lede, .hero .role, .hero-mini, .nav) { opacity: 0; }
+html.intro-on.intro-out :is(.hero .lede, .hero .role, .hero-mini, .nav) { opacity: 1; transition: opacity .9s var(--ease) .6s; }
+
 /* ---------- Pinned scenes: content stays put, scenes change in place ---------- */
 html.pinned .scene { height: 100vh; height: 100svh; }
 html.pinned .layer {
@@ -511,7 +548,8 @@ main { transition: opacity .3s var(--ease); }
 
 /* ---------- Print / Save as PDF ---------- */
 @media print {
-  .backdrop, .nav, .veil, .chapter, .skip, .mini { display: none !important; }
+  .backdrop, .nav, .veil, .chapter, .skip, .mini, .intro { display: none !important; }
+  html.intro-on .hero h1 { visibility: visible; }
   html.pinned .scene { height: auto; }
   .layer, html.pinned .layer { position: static; min-height: 0; padding: 24px 0; opacity: 1 !important; filter: none !important; transform: none !important; }
   .js .scene .r { opacity: 1 !important; filter: none !important; transform: none !important; }
