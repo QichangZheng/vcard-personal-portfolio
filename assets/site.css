@@ -274,13 +274,21 @@ html:not(.js) .lang { display: none; }
    then pans between chapters. Values come from tools/camera18103.js: the highlighted part stays whole on screen,
    clear of the text by 40px or more and past the soft edge of the side mask, below the chapter pill and
    24px above the bottom, at 1024-1920px wide; chapter 04 (the widest part) uses 1.25x, 1.1x below 1280px
-   (the product panels themselves may leave the frame). */
+   (the product panels themselves may leave the frame). Chapter 04 was re-searched with tools/camw4.js for the
+   top-down Agent Team (pool on top): it also stays past the opaque edge of the text mask; tools/margins.js
+   reports every chapter's margins. */
 [data-scene="w1"] .backdrop .diagram { transform: translate(24%, -20%) scale(1.3); }
 [data-scene="w2"] .backdrop .diagram { transform: translate(-16%, -26%) scale(1.3); }
 [data-scene="w3"] .backdrop .diagram { transform: translate(-48%, -12%) scale(1.3); }
-[data-scene="w4"] .backdrop .diagram { transform: translate(0%, -84%) scale(1.25); }
+[data-scene="w4"] .backdrop .diagram { transform: translate(0%, -82%) scale(1.25); }
+/* on wide, short screens the drawing is bound by its max-height (76vh) rather than its width, so it is smaller:
+   chapter 04 moves in a little closer there, so its labels stay at 11px or more down to about 1440x760. The
+   condition is exactly "height-bound": 0.76 * height < min(50vw, 860px) * 810 / 916 (the viewBox's aspect). */
+@media (min-width: 1280px) and (min-aspect-ratio: 1719/1000) and (max-height: 1000px) {
+  [data-scene="w4"] .backdrop .diagram { transform: translate(-0.4%, -82%) scale(1.3); }
+}
 @media (min-width: 1024px) and (max-width: 1279px) {
-  [data-scene="w4"] .backdrop .diagram { transform: translate(-1.5%, -82%) scale(1.1); }
+  [data-scene="w4"] .backdrop .diagram { transform: translate(-0.6%, -80%) scale(1.1); }
   html[data-scene="hero"] .backdrop .diagram { transform: translate(-5%, -47%); }
 }
 /* leaving the drawing for a text-only scene: fade quickly so it never shows through the arriving block */
@@ -296,12 +304,15 @@ html:not(.js) .backdrop { display: none; }
 }
 
 /* ---------- Agent Team: the continuous animation ----------
-   One 18 s loop, one story at a time with still holds between them, accent blue only. Beats, times and
-   path lengths live in gen.py (ROUTES / TIMELINE / FADES / PATROL; it writes the keyframes at the FX marker
-   below); the table is in DESIGN.md. It runs only where it can be seen: the hero, chapter 04, and the
-   chapter-04 phone crop while that crop is on screen (site.js adds .run). It pauses everywhere else, and is
-   absent under prefers-reduced-motion. Only paint properties move (stroke-dashoffset, fill-opacity,
-   stroke-opacity), so nothing is promoted to a layer of its own. */
+   One loop (its length is LOOP in gen.py), messages one at a time with rests between them, accent blue only. A
+   message is a line that draws itself from the sender card, up into the control plane, along it and down to the
+   receiver card, where its round head parks against the card's side; it holds, then its tail follows it in and the
+   head slides into the card. The accounts in use in the pool are lit like status lights, each blinking softly on
+   its own rhythm; they keep still while a message lands and through the rest at the wrap. Beats, times, widths and
+   path lengths live in gen.py (MSGS / MSG_W / blinks; it writes the keyframes at the FX marker below); the table is in
+   DESIGN.md. It runs only where it can be seen: the hero, chapter 04, and the chapter-04 phone crop while that crop
+   is on screen (site.js adds .run). It pauses everywhere else, and is absent under prefers-reduced-motion. Only
+   paint properties move (stroke-dashoffset, fill-opacity, stroke-opacity), so nothing is promoted to a layer. */
 .diagram .fx {
   animation-timing-function: linear;
   animation-iteration-count: infinite;
@@ -311,79 +322,83 @@ html:not(.js) .backdrop { display: none; }
 html[data-scene="hero"] .backdrop .fx,
 html[data-scene="w4"] .backdrop .fx,
 .mini[data-hl="w4"].run .fx { animation-play-state: running; }
-/* the cross-project exchange is with Project A on desktop, with Project B in the phone crop (A is outside it) */
+/* every message is drawn once per view: the phone crop has no Project A and its own line along the control plane */
 .backdrop .mini-only, .mini .desk-only { display: none; }
-.diagram .capsule { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.diagram .capsule.case { stroke: var(--bg); stroke-width: 6; }
-/* an account travels as a small chip (blue outline, the leased chip's light fill); a message as a short dash */
-.diagram .capsule.token { stroke-width: 8; }
-.diagram .capsule.token.core { stroke: #bac4ee; stroke-width: 5.5; }
-.diagram .capsule.token.case { stroke: var(--bg); stroke-width: 10; }
-.diagram .lit { fill: rgba(63, 91, 208, .1); stroke: var(--accent); stroke-width: 2; }
-.diagram .chiplit { fill: rgba(63, 91, 208, .32); stroke: var(--accent); stroke-width: 1.25; }
-.diagram .tick { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; }
-.diagram .ppulse { fill: none; stroke: var(--accent); stroke-width: 1.5; }
-.diagram .cpglow { fill: rgba(63, 91, 208, .06); stroke: none; }
-.diagram :is(.lit, .chiplit, .tick, .ppulse, .cpglow) { fill-opacity: 0; stroke-opacity: 0; }
-.diagram .newcard { opacity: 0; }
-.js.settled .diagram .newcard { opacity: 1; }
-/* quieter in the hero than in chapter 04; the moving parts leave the other chapters */
-.diagram :is(.live, .q, .newcard) { transition: opacity .6s var(--ease); }
-html[data-scene="hero"] .backdrop :is(.live, .q) { opacity: .5; }
-html[data-scene^="w"]:not([data-scene="w4"]) .backdrop :is(.live, .q, .newcard) { opacity: 0; }
+/* a message: a crisp accent line with a small round head; a reply is the same, lighter by weight (widths: gen.py) */
+.diagram .msg { fill: none; stroke: var(--accent); stroke-linecap: round; stroke-linejoin: round; }
+.diagram .msg.reply { stroke-opacity: .8; }
+/* in the hero the moving parts sit at half strength; the reply keeps its own opacity there so it does not vanish */
+html[data-scene="hero"] .backdrop .msg.reply { stroke-opacity: 1; }
+/* a card's outline strengthens while it sends, and while it works on what reached it */
+.diagram .lit { fill: rgba(63, 91, 208, .035); stroke: var(--accent); stroke-width: 2; }
+/* the pool: an account in use is lit (its light blinks softly now and then); an idle one is hollow and still */
+.diagram .led { fill: var(--accent); stroke: none; }
+.diagram .slot.off { fill: #fff; }
+[data-scene="w4"] .backdrop .g-team .slot.off, .mini[data-hl="w4"] .g-team .slot.off { stroke: rgba(63, 91, 208, .42); }
+.diagram .lit { fill-opacity: 0; stroke-opacity: 0; }
+.diagram .led { fill-opacity: 0; }
+/* the moving parts arrive after the first paint; quieter in the hero than in chapter 04; gone in 01-03 */
+.diagram .live { transition: opacity .6s var(--ease); }
+.js:not(.settled) .diagram .live { opacity: 0; }
+html[data-scene="hero"] .backdrop .live { opacity: .5; }
+html[data-scene^="w"]:not([data-scene="w4"]) .backdrop .live { opacity: 0; }
 /* entering chapter 04 the moving parts fade for a moment while site.js restarts the story (restartStory) */
-html.js.fx-reset .backdrop .diagram :is(.live, .q, .newcard) { opacity: 0; transition: opacity .2s var(--ease); }
-/* the phone crop draws lines at a fixed 1.1-1.5 px; the moving parts are thickened to keep their weight over them */
-.mini[data-hl="w4"] .capsule:not(.token) { stroke-width: 4.5; }
-.mini[data-hl="w4"] .capsule.case:not(.token) { stroke-width: 7.5; }
+html.js.fx-reset .backdrop .diagram .live { opacity: 0; transition: opacity .2s var(--ease); }
+/* the phone crop draws lines at a fixed 1.1-1.5 px; the moving parts are thickened (gen.py) to keep their weight */
 .mini[data-hl="w4"] .lit { stroke-width: 3; }
-.mini[data-hl="w4"] .tick { stroke-width: 3.5; }
-.mini[data-hl="w4"] .ppulse { stroke-width: 3; }
-.diagram .fx { animation-duration: 18s; }
-.js.settled .diagram .fx-lease { animation-name: fx-lease; }
-@keyframes fx-lease { 0%, 4.444% { stroke-dashoffset: 13; animation-timing-function: cubic-bezier(.65, 0, .35, 1); } 11.111%, 100% { stroke-dashoffset: -239; } }
-.js.settled .diagram .fx-msg { animation-name: fx-msg; }
-@keyframes fx-msg { 0%, 17.778% { stroke-dashoffset: 21; animation-timing-function: cubic-bezier(.65, 0, .35, 1); } 24.444%, 100% { stroke-dashoffset: -305; } }
-.js.settled .diagram .fx-xmsg { animation-name: fx-xmsg; }
-@keyframes fx-xmsg { 0%, 28.889% { stroke-dashoffset: 21; animation-timing-function: cubic-bezier(.65, 0, .35, 1); } 38.889%, 100% { stroke-dashoffset: -511; } }
-.js.settled .diagram .fx-reply { animation-name: fx-reply; }
-@keyframes fx-reply { 0%, 43.333% { stroke-dashoffset: 15; animation-timing-function: cubic-bezier(.65, 0, .35, 1); } 53.333%, 100% { stroke-dashoffset: -511; } }
-.js.settled .diagram .fx-xmsgb { animation-name: fx-xmsgb; }
-@keyframes fx-xmsgb { 0%, 28.889% { stroke-dashoffset: 21; animation-timing-function: cubic-bezier(.65, 0, .35, 1); } 38.889%, 100% { stroke-dashoffset: -339; } }
-.js.settled .diagram .fx-replyb { animation-name: fx-replyb; }
-@keyframes fx-replyb { 0%, 43.333% { stroke-dashoffset: 15; animation-timing-function: cubic-bezier(.65, 0, .35, 1); } 53.333%, 100% { stroke-dashoffset: -339; } }
-.js.settled .diagram .fx-back { animation-name: fx-back; }
-@keyframes fx-back { 0%, 75% { stroke-dashoffset: 13; animation-timing-function: cubic-bezier(.65, 0, .35, 1); } 81.667%, 100% { stroke-dashoffset: -239; } }
-.js.settled .diagram .fx-new { animation-name: fx-new; }
-@keyframes fx-new { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 1.667% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 4.444% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 78.889% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 81.667% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
-.js.settled .diagram .fx-chip { animation-name: fx-chip; }
-@keyframes fx-chip { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 2.222% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 4.167% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 80.205% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 82.427% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
-.js.settled .diagram .fx-lit-new { animation-name: fx-lit-new; }
-@keyframes fx-lit-new { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 9.003% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 10.392% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 19.442% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 22.22% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 73.333% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 74.722% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 78.889% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 81.667% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
-.js.settled .diagram .fx-lit-c0 { animation-name: fx-lit-c0; }
-@keyframes fx-lit-c0 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 22.225% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 23.613% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 30.924% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 33.701% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 50.984% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 52.373% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 53.762% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 57.095% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
+/* the phone crop's labels are larger: its control-plane label sits 2 units higher to clear the message line below it */
+.mini .cpl { transform: translateY(-2px); }
+.diagram .fx { animation-duration: 17s; }
+.diagram .msg { stroke-width: 2; } .diagram .msg.head { stroke-width: 6; }
+.diagram .msg.reply { stroke-width: 1.75; } .diagram .msg.reply.head { stroke-width: 4.5; }
+.mini[data-hl="w4"] .msg { stroke-width: 3.5; } .mini[data-hl="w4"] .msg.head { stroke-width: 7.5; }
+.mini[data-hl="w4"] .msg.reply { stroke-width: 3; } .mini[data-hl="w4"] .msg.reply.head { stroke-width: 6; }
+.js.settled .diagram .fx-m1 { animation-name: fx-m1; }
+@keyframes fx-m1 { 0%, 5.294% { stroke-dashoffset: 252.13; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 13.529%, 16.471% { stroke-dashoffset: -165.13; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 22.353%, 100% { stroke-dashoffset: -424.27; } }
+.js.settled .diagram .fx-m1h { animation-name: fx-m1h; }
+@keyframes fx-m1h { 0%, 5.294% { stroke-dashoffset: 1; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 13.529%, 21.606% { stroke-dashoffset: -417.27; animation-timing-function: cubic-bezier(0.3231, 0.6382, 0.6555, 1); } 22.353%, 100% { stroke-dashoffset: -427.27; } }
+.js.settled .diagram .fx-m1b { animation-name: fx-m1b; }
+@keyframes fx-m1b { 0%, 5.294% { stroke-dashoffset: 249.38; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 13.529%, 16.471% { stroke-dashoffset: -163.13; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 22.353%, 100% { stroke-dashoffset: -420.27; } }
+.js.settled .diagram .fx-m1bh { animation-name: fx-m1bh; }
+@keyframes fx-m1bh { 0%, 5.294% { stroke-dashoffset: 1; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 13.529%, 21.548% { stroke-dashoffset: -412.52; animation-timing-function: cubic-bezier(0.3225, 0.6357, 0.6547, 1); } 22.353%, 100% { stroke-dashoffset: -424.02; } }
+.js.settled .diagram .fx-m2 { animation-name: fx-m2; }
+@keyframes fx-m2 { 0%, 32.353% { stroke-dashoffset: 484.27; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 41.765%, 44.706% { stroke-dashoffset: 7.00; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 54.118%, 100% { stroke-dashoffset: -484.27; } }
+.js.settled .diagram .fx-m2h { animation-name: fx-m2h; }
+@keyframes fx-m2h { 0%, 32.353% { stroke-dashoffset: 1; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 41.765%, 53.253% { stroke-dashoffset: -477.27; animation-timing-function: cubic-bezier(0.3257, 0.6467, 0.6585, 1); } 54.118%, 100% { stroke-dashoffset: -487.27; } }
+.js.settled .diagram .fx-m2b { animation-name: fx-m2b; }
+@keyframes fx-m2b { 0%, 32.353% { stroke-dashoffset: 430.27; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 41.765%, 44.706% { stroke-dashoffset: 7.75; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 54.118%, 100% { stroke-dashoffset: -430.27; } }
+.js.settled .diagram .fx-m2bh { animation-name: fx-m2bh; }
+@keyframes fx-m2bh { 0%, 32.353% { stroke-dashoffset: 1; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 41.765%, 53.134% { stroke-dashoffset: -422.52; animation-timing-function: cubic-bezier(0.3248, 0.6437, 0.6575, 1); } 54.118%, 100% { stroke-dashoffset: -434.02; } }
+.js.settled .diagram .fx-m3 { animation-name: fx-m3; }
+@keyframes fx-m3 { 0%, 60.588% { stroke-dashoffset: 484.27; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 70%, 72.941% { stroke-dashoffset: 6.25; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 82.353%, 100% { stroke-dashoffset: -484.27; } }
+.js.settled .diagram .fx-m3h { animation-name: fx-m3h; }
+@keyframes fx-m3h { 0%, 60.588% { stroke-dashoffset: 1; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 70%, 81.555% { stroke-dashoffset: -478.02; animation-timing-function: cubic-bezier(0.3262, 0.6484, 0.6592, 1); } 82.353%, 100% { stroke-dashoffset: -486.52; } }
+.js.settled .diagram .fx-m3b { animation-name: fx-m3b; }
+@keyframes fx-m3b { 0%, 60.588% { stroke-dashoffset: 430.27; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 70%, 72.941% { stroke-dashoffset: 7.00; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 82.353%, 100% { stroke-dashoffset: -430.27; } }
+.js.settled .diagram .fx-m3bh { animation-name: fx-m3bh; }
+@keyframes fx-m3bh { 0%, 60.588% { stroke-dashoffset: 1; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } 70%, 81.436% { stroke-dashoffset: -423.27; animation-timing-function: cubic-bezier(0.3253, 0.6454, 0.6581, 1); } 82.353%, 100% { stroke-dashoffset: -433.27; } }
 .js.settled .diagram .fx-lit-a0 { animation-name: fx-lit-a0; }
-@keyframes fx-lit-a0 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 36.299% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 37.688% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 45.127% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 47.905% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
-.js.settled .diagram .fx-lit-c0b { animation-name: fx-lit-c0b; }
-@keyframes fx-lit-c0b { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 22.225% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 23.613% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 31.286% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 34.064% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 50.65% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 52.039% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 53.428% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 56.761% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
+@keyframes fx-lit-a0 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 30.588% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 32.353% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 44.706% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 48.235% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 69.136% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 70.901% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 84.118% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 87.647% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
 .js.settled .diagram .fx-lit-b0 { animation-name: fx-lit-b0; }
-@keyframes fx-lit-b0 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 35.936% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 37.325% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 45.461% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 48.239% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
-.js.settled .diagram .fx-tick0 { animation-name: fx-tick0; }
-@keyframes fx-tick0 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 61% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 62.111% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 63.056% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 65.833% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
-.js.settled .diagram .fx-pp0 { animation-name: fx-pp0; }
-@keyframes fx-pp0 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 61.556% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 62.667% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 63.333% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 66.111% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
-.js.settled .diagram .fx-tick1 { animation-name: fx-tick1; }
-@keyframes fx-tick1 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 63.222% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 64.333% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 65.278% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 68.056% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
-.js.settled .diagram .fx-pp1 { animation-name: fx-pp1; }
-@keyframes fx-pp1 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 63.778% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 64.889% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 65.556% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 68.333% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
-.js.settled .diagram .fx-tick2 { animation-name: fx-tick2; }
-@keyframes fx-tick2 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 65.444% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 66.556% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 67.5% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 70.278% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
-.js.settled .diagram .fx-pp2 { animation-name: fx-pp2; }
-@keyframes fx-pp2 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 66% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 67.111% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 67.778% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 70.556% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
-.js.settled .diagram .fx-cpglow { animation-name: fx-cpglow; }
-@keyframes fx-cpglow { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 20.4% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 21.789% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 22.113% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 24.057% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 31.353% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 32.742% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 35.869% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 37.814% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 45.811% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 47.2% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 50.3% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 52.244% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
-.js.settled .diagram .fx-cpglowb { animation-name: fx-cpglowb; }
-@keyframes fx-cpglowb { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 20.4% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 21.789% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 22.113% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 24.057% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 31.841% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 33.23% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 35.381% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 37.326% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 46.307% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 47.696% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 49.804% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 51.749% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
+@keyframes fx-lit-b0 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 12.683% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 14.448% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 24.118% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 27.647% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
+.js.settled .diagram .fx-lit-b0m { animation-name: fx-lit-b0m; }
+@keyframes fx-lit-b0m { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 12.681% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 14.446% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 24.118% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 27.647% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 30.588% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 32.353% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 44.706% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 48.235% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 69.119% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 70.883% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 84.118% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 87.647% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
+.js.settled .diagram .fx-lit-b1 { animation-name: fx-lit-b1; }
+@keyframes fx-lit-b1 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 3.529% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 5.294% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 9.941% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 13.471% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
+.js.settled .diagram .fx-lit-c0 { animation-name: fx-lit-c0; }
+@keyframes fx-lit-c0 { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 40.882% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 42.647% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 72.941% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 76.471% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
+.js.settled .diagram .fx-led0 { animation-name: fx-led0; }
+@keyframes fx-led0 { 0% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 3.765% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 4.941% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 5.529% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 7.882% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 33.294% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 34.471% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 35.059% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 37.412% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 63.706% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 64.882% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 65.471% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 67.824% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
+.js.settled .diagram .fx-led1 { animation-name: fx-led1; }
+@keyframes fx-led1 { 0% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 18.882% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 20.059% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 20.647% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 23% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 52.235% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 53.412% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 54% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 56.353% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 85.294% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 86.471% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 87.059% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 89.412% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
+.js.settled .diagram .fx-led3 { animation-name: fx-led3; }
+@keyframes fx-led3 { 0% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 23.118% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 24.294% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 24.882% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 27.235% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 54.706% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 55.882% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 56.471% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 58.824% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 59.412% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 60.588% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 61.176% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 63.529% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 81% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 82.176% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 82.765% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 85.118% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
+.js.settled .diagram .fx-led4 { animation-name: fx-led4; }
+@keyframes fx-led4 { 0% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 6.412% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 7.588% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 8.176% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 10.529% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 35.588% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 36.765% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 37.353% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 39.706% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 75.118% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 76.294% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 76.882% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 79.235% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
+.js.settled .diagram .fx-led6 { animation-name: fx-led6; }
+@keyframes fx-led6 { 0% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 20.941% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 22.118% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 22.706% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 25.059% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 50.176% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 51.353% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 51.941% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 54.294% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 83.176% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 84.353% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 84.941% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 87.294% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
+.js.settled .diagram .fx-led8 { animation-name: fx-led8; }
+@keyframes fx-led8 { 0% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 25.235% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 26.412% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 27% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 29.353% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 29.941% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 31.118% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 31.706% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 34.059% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 48% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 49.176% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 49.765% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 52.118% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 78.706% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 79.882% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 80.471% { fill-opacity: 0.25; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 82.824% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } }
 
 /* per-chapter drawing inside the text flow (narrow screens only, built by JS) */
 .mini { display: none; overflow: hidden; }
@@ -691,7 +706,7 @@ main { transition: opacity .3s var(--ease); }
   .js .backdrop :is(.lbl, .dash) { opacity: 1; }
   .js .backdrop .n { fill-opacity: 1; }
   .diagram .fx { animation: none !important; }
-  .diagram :is(.live, .newcard, .q) { display: none; }
+  .diagram .live { display: none; }
   .veil::before { display: none; }
   *, *::before, *::after { transition-duration: .01ms !important; transition-delay: 0s !important; animation-duration: .01ms !important; }
   ::view-transition-old(root), ::view-transition-new(root) { animation: none; }

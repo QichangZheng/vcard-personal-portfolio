@@ -20,7 +20,7 @@
     w1: ['-4 84 480 300', 12, 17],
     w2: ['342 100 468 292', 12, 18],
     w3: ['500 6 556 348', 12, 19],
-    w4: ['318 452 504 315', 12, 17],
+    w4: ['364 494 478 298.75', 12, 17],
   };
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
 
@@ -207,7 +207,7 @@
   /* ---------- Chapter 04 opens the Agent Team story at its start ---------- */
   // The loop also runs in the hero and is paused in 01-03, so without this chapter 04 would open anywhere in it.
   // The moving parts fade out for 200 ms (the camera is moving), every loop animation jumps to the loop's last
-  // breath of rest (data-fx-entry, written by gen.py) and they fade back in: the lease starts about 1 s later.
+  // breath of rest (data-fx-entry, written by gen.py) and they fade back in: the first sender lights about 1.1 s later.
   const FX_ENTRY = drawing ? parseFloat(drawing.getAttribute('data-fx-entry') || '0') * 1000 : 0;
   let fxTimer = 0;
   function restartStory() {
