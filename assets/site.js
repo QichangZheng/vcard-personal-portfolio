@@ -16,11 +16,11 @@
   // viewBox crops of the drawing for narrow screens:
   // [viewBox, smallest label size on screen in px, largest label size in drawing units so labels fit their boxes]
   const CROPS = {
-    hero: ['100 76 820 404', 9, 19],
-    w1: ['-8 122 470 294', 12, 20],
-    w2: ['250 128 528 330', 12, 20],
-    w3: ['484 172 448 280', 12, 20],
-    w4: ['150 390 560 350', 12, 20],
+    hero: ['122 10 784 420', 9, 18],   // Clients (.ph-x) is left out, so the platform can be larger
+    w1: ['-4 84 480 300', 12, 17],
+    w2: ['342 100 468 292', 12, 18],
+    w3: ['500 6 556 348', 12, 19],
+    w4: ['318 452 504 315', 12, 17],
   };
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
 
@@ -57,6 +57,15 @@
       else col.insertBefore(box, col.firstChild);
       minis.push({ box, svg, width: parseFloat(crop[0].split(' ')[2]), px: crop[1], cap: crop[2] });
     });
+  }
+  // the chapter-04 crop runs its loop while it is on screen (not while its chapter is current: on phones the
+  // chapter changes when its top passes 30% of the screen, so the crop can be in view under another chapter)
+  const teamMini = minis.find((m) => m.box.dataset.hl === 'w4');
+  if (teamMini) {
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle('run', e.isIntersecting)), { threshold: 0.01 })
+        .observe(teamMini.box);
+    } else teamMini.box.classList.add('run');
   }
   function sizeMiniLabels() {
     minis.forEach((m) => {
@@ -195,6 +204,24 @@
     });
   }
 
+  /* ---------- Chapter 04 opens the Agent Team story at its start ---------- */
+  // The loop also runs in the hero and is paused in 01-03, so without this chapter 04 would open anywhere in it.
+  // The moving parts fade out for 200 ms (the camera is moving), every loop animation jumps to the loop's last
+  // breath of rest (data-fx-entry, written by gen.py) and they fade back in: the lease starts about 1 s later.
+  const FX_ENTRY = drawing ? parseFloat(drawing.getAttribute('data-fx-entry') || '0') * 1000 : 0;
+  let fxTimer = 0;
+  function restartStory() {
+    if (!drawing || reduced) return;
+    root.classList.add('fx-reset');
+    window.clearTimeout(fxTimer);
+    fxTimer = window.setTimeout(() => {
+      if (root.getAttribute('data-scene') === 'w4') {
+        drawing.querySelectorAll('.fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = FX_ENTRY; }));
+      }
+      root.classList.remove('fx-reset');
+    }, 200);
+  }
+
   /* ---------- Current scene ---------- */
   const timers = new WeakMap();
   function later(scene, fn, ms) {
@@ -230,6 +257,7 @@
       }
     }
     if (!instant && prev) redraw(scene);
+    if (prev && scene.dataset.scene === 'w4') restartStory();
     swapChapter(prev, instant);
   }
 
