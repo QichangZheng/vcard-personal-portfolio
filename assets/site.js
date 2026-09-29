@@ -37,6 +37,15 @@
   const canAnimate = () => !reduced && typeof Element.prototype.animate === 'function';
   const lang = () => (root.getAttribute('data-lang') === 'zh' ? 'zh' : 'en');
 
+  // seek every loop animation under an svg that belongs to a part of it (sel), in one call (asking each element for
+  // its own animations costs about 50 ms for the Agent Team alone: a visible stall on arriving at a chapter)
+  function seekLoop(svg, sel, t) {
+    svg.getAnimations({ subtree: true }).forEach((a) => {
+      const el = a.effect && a.effect.target;
+      if (el && el.classList && el.classList.contains('fx') && el.closest(sel)) a.currentTime = typeof t === 'function' ? t(a) : t;
+    });
+  }
+
   /* ---------- Narrow screens: the hero and each chapter carry their own crop of the drawing ---------- */
   const minis = [];
   if (drawing) {
@@ -49,6 +58,10 @@
       box.setAttribute('aria-hidden', 'true');
       const svg = drawing.cloneNode(true);
       svg.setAttribute('viewBox', crop[0]);
+      // a crop keeps only its own loop (the others lie outside its view, and each would cost a few hundred animations)
+      const hl = s.dataset.scene;
+      svg.querySelectorAll('.cl').forEach((g) => { if (!g.classList.contains('cl-' + hl)) g.remove(); });
+      if (hl !== 'w4') svg.querySelectorAll('.g-team .fx').forEach((n) => n.remove());
       box.appendChild(svg);
       const col = s.querySelector('.col');
       // chapters: the drawing sits between the subtitle and the points, so the scene starts at its heading
@@ -70,7 +83,7 @@
         if (on === e.target.classList.contains('run')) return;
         // (while it does not run, its moving parts fade out rather than stand frozen mid-message: site.css)
         e.target.classList.toggle('run', on);
-        if (on) teamMini.svg.querySelectorAll('.g-team .fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = FX_ENTRY_MS; }));
+        if (on) seekLoop(teamMini.svg, '.g-team', FX_ENTRY_MS);
         wakeShakes();
       }), { threshold: 0.6 })
         .observe(teamMini.box);
@@ -83,7 +96,7 @@
       const on = e.isIntersecting && e.intersectionRatio >= 0.599;
       if (on === e.target.classList.contains('run')) return;
       e.target.classList.toggle('run', on);
-      if (on) m.svg.querySelectorAll('.cl-' + m.box.dataset.hl + ' .fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = 0; }));
+      if (on) seekLoop(m.svg, '.cl-' + m.box.dataset.hl, 0);
     }), { threshold: 0.6 }).observe(m.box);
   });
   function sizeMiniLabels() {
@@ -102,7 +115,7 @@
   // scale and opacity only: a blur on two full-screen layers costs about half the frames
   const IN = { down: 0.9, up: 1.1 };    // where the arriving scene comes from
   const OUT = { down: 1.1, up: 0.9 };   // where the leaving scene goes
-  const LEAD = 370;                     // how long a fully visible leaving scene has before the next one starts
+  const LEAD = 290;                     // how long a fully visible leaving scene has before the next one starts
   function layerOf(scene) { return scene.querySelector('.layer'); }
   function zoomIn(scene, from, delay, duration) {
     if (!canAnimate()) return 0;
@@ -116,8 +129,11 @@
       delay = 0;
     }
     l.getAnimations().forEach((x) => x.cancel());
-    l.animate([first, { opacity: 1, transform: 'scale(1)' }],
+    // the depth move keeps its long settle; the fade is its own, shorter and even, so the new block never snaps in
+    l.animate([{ transform: first.transform }, { transform: 'scale(1)' }],
       { duration: duration || 1100, delay, easing: EASE, fill: 'backwards' });
+    l.animate([{ opacity: first.opacity }, { opacity: 1 }],
+      { duration: 600, delay, easing: 'cubic-bezier(.25, .1, .25, 1)', fill: 'backwards' });
     return delay;
   }
   function zoomOut(scene, to) {
@@ -131,15 +147,18 @@
     if (o < 0.02) return;
     l._exitAt = window.performance.now();
     l._exitLead = LEAD * Math.min(1, o);
-    // the block moves in depth while it is still readable, then fades
+    // the block moves in depth, and fades out on its own shorter clock, gone before the next one is readable
     l.animate(
       [
-        { opacity: o, transform: t0, offset: 0 },
-        { opacity: 0.8 * o, transform: 'scale(' + (1 + (to - 1) * 0.55) + ')', offset: 0.45 },
-        { opacity: 0, transform: 'scale(' + to + ')', offset: 1 },
+        { transform: t0, offset: 0 },
+        { transform: 'scale(' + (1 + (to - 1) * 0.55) + ')', offset: 0.45 },
+        { transform: 'scale(' + to + ')', offset: 1 },
       ],
       { duration: Math.round(560 * Math.max(0.4, o)), easing: 'cubic-bezier(.33, 0, .67, 1)' }
     );
+    l.animate([{ opacity: o }, { opacity: 0 }],
+      { duration: Math.round(460 * Math.max(0.4, o)), easing: 'cubic-bezier(.4, 0, 1, 1)' });   // (with LEAD 290 and
+    // the arrival's 600 ms fade: never both readable, never both gone)
   }
   // the arriving scene waits for whichever scenes are still visibly leaving
   function arrivalDelay(scene) {
@@ -241,7 +260,7 @@
           { strokeDasharray: '1 1', strokeDashoffset: 1 },
           { strokeDasharray: '1 1', strokeDashoffset: 0 },
         ],
-        { duration: 1000, delay: 250 + Math.min(i, 6) * 60, easing: EASE, fill: 'backwards' }
+        { duration: 700, delay: 1000 + Math.min(i, 6) * 60, easing: EASE, fill: 'backwards' }   // once the camera has landed
       );
     });
   }
@@ -258,23 +277,23 @@
     window.clearTimeout(fxTimer);
     fxTimer = window.setTimeout(() => {
       if (root.getAttribute('data-scene') === 'w4') {
-        drawing.querySelectorAll('.g-team .fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = FX_ENTRY; }));
+        seekLoop(drawing, '.g-team', FX_ENTRY);
       }
       root.classList.remove('fx-reset');
       wakeShakes();
-    }, 200);
+    }, 700);   // (the moving parts come back as the longer pan into 04 lands)
   }
 
   // chapters 01-03 each have a short loop of their own (gen.py). Arriving at one, its loop starts again from its
   // last moments of rest, so its story begins about as the camera settles rather than somewhere in the middle.
   function restartChapter(ch) {
     if (!drawing || reduced) return;
-    drawing.querySelectorAll('.cl-' + ch + ' .fx').forEach((el) => el.getAnimations().forEach((a) => {
-      // the hero's stream starts empty, from its first request; a chapter's loop from its last breath of rest
-      if (ch === 'hero') { a.currentTime = 0; return; }
+    // the hero's stream starts empty, from its first request; a chapter's loop from its last breath of rest, so its
+    // story begins as the camera lands
+    seekLoop(drawing, '.cl-' + ch, ch === 'hero' ? 0 : (a) => {
       const L = a.effect ? a.effect.getComputedTiming().duration : 0;
-      if (L > 700) a.currentTime = L - 700;
-    }));
+      return L > 1100 ? L - 1100 : a.currentTime;
+    });
   }
 
   /* ---------- The vibration: a card shakes when it sends and the moment the beam reaches it ---------- */
@@ -990,7 +1009,7 @@
       it.el.style.setProperty('--pen', PEN_EASE);
       it.el.style.setProperty('--fd', (t + dur * 0.8).toFixed(3) + 's');
       if (bound) it.el.style.setProperty('--ld', t.toFixed(3) + 's');
-      if (it.len >= 150) {
+      if (it.len >= 300) {
         const pen = document.createElementNS(it.el.namespaceURI, 'path');
         pen.setAttribute('d', it.el.getAttribute('d'));
         pen.setAttribute('pathLength', '1');
@@ -1059,7 +1078,7 @@
     setBehind(true);
     first.classList.add('is-in');
     // the drawing and the rest of the hero arrive while the name moves; the pen starts as the curtain lifts
-    sketchAll(0.55);
+    sketchAll(1.3);
     const onMove = () => { markDrawn(); root.classList.add('intro-out'); };
     playTypeIntro(onMove, introDone);
   } else {
