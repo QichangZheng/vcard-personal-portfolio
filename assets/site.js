@@ -234,7 +234,7 @@
   function redraw(scene) {
     const g = GROUP[scene.dataset.scene];
     if (!g || !drawing || !canAnimate() || !root.classList.contains('settled')) return;
-    drawing.querySelectorAll('.' + g + ' .e.draw').forEach((p, i) => {
+    drawing.querySelectorAll('.' + g + ' .e.draw:not(.bound)').forEach((p, i) => {
       p.getAnimations().forEach((a) => a.cancel());
       p.animate(
         [
@@ -957,53 +957,65 @@
   // while the intro runs, the page behind the curtain can be neither clicked nor tabbed into
   const behind = [nav, document.getElementById('main'), document.querySelector('.skip')].filter(Boolean);
   const setBehind = (on) => behind.forEach((el) => { el.inert = on; });
-  /* ---------- First paint: the drawing is sketched in, stroke by stroke, as if drawn live ---------- */
-  // Each line and box is traced by a pen (a bright dot at its tip) at an even pace, left to right, the platform first
-  // and the Agent Team below it after; strokes overlap a little, like a quick hand. A box's label and fill arrive once
-  // it is closed; dashed lines, captions and the pool's lights as the pen passes them. Returns when the last stroke
-  // ends (s after the drawing starts); the page settles only after that (settleLater).
-  const PEN_SPEED = 950;        // drawing units per second along a stroke
-  const PEN_EASE = 'cubic-bezier(.45, .05, .4, 1)';
+  /* ---------- First paint: the drawing is sketched in, as if drawn live ---------- */
+  // Every part of the drawing is drawn at the same time, the platform and the Agent Team alike (owner: not left to
+  // right, no order between the two panels, many parts at once, and slowly): each line and box is traced by its own
+  // pen (a bright dot at its tip on the longer strokes), the frames and boxes first, what sits inside them a moment
+  // later, the connecting lines last; each start is nudged a little, like more than one hand. A box's label and fill
+  // arrive once it is closed. Returns when the last stroke ends (s after the drawing starts); the page settles only
+  // after that (settleLater).
+  const PEN_SPEED = 240;        // drawing units per second along a stroke
+  const PEN_EASE = 'cubic-bezier(.4, .1, .35, 1)';
   function sketch(svg, t0) {
     if (!svg || !svg.getBoundingClientRect().width) return 0;
-    const band = (el) => (el.closest('.g-team') ? 1 : 0);
-    // the two product panels' frames are drawn too, each first in its band (the pen outlines the panel, then fills it)
-    svg.querySelectorAll('.bound').forEach((el) => { el.setAttribute('pathLength', '1'); el.classList.add('draw'); });
-    const items = Array.from(svg.querySelectorAll('.draw')).map((el) => {
+    // (the product panels' frames are .draw too, from gen.py, so they are hidden from the very first paint)
+    const items = Array.from(svg.querySelectorAll('.draw')).map((el, i) => {
       const b = el.getBBox();
-      return { el, x: b.x, y: b.y, len: el.getTotalLength(), band: band(el), frame: el.classList.contains('bound') ? 0 : 1 };
-    }).sort((a, b) => a.band - b.band || a.frame - b.frame || a.x - b.x || a.y - b.y);
-    let t = t0;
+      const grp = el.closest('.grp');
+      const inner = el.classList.contains('slot') || el.classList.contains('agent') ||
+        (!el.classList.contains('tint') && Boolean(grp && grp.querySelector('.tint')) && !grp.classList.contains('g-team'));
+      const tier = el.classList.contains('bound') ? 0 : el.classList.contains('e') ? 1.0 : inner ? 0.6 : 0.15;
+      return { el, b, len: el.getTotalLength(), tier, jitter: ((i * 37) % 11) / 11 * 0.22 };
+    });
     let end = t0;
     items.forEach((it) => {
-      const dur = Math.min(0.75, Math.max(0.12, it.len / PEN_SPEED));
-      it.start = t;
+      const bound = it.el.classList.contains('bound');
+      const dur = bound ? 3.2 : Math.min(2.2, Math.max(1.2, it.len / PEN_SPEED));
+      const t = t0 + it.tier + it.jitter;
       it.end = t + dur;
       it.el.style.setProperty('--dd', t.toFixed(3) + 's');
       it.el.style.setProperty('--dur', dur.toFixed(3) + 's');
       it.el.style.setProperty('--pen', PEN_EASE);
       it.el.style.setProperty('--fd', (t + dur * 0.8).toFixed(3) + 's');
-      const pen = document.createElementNS(it.el.namespaceURI, 'path');
-      pen.setAttribute('d', it.el.getAttribute('d'));
-      pen.setAttribute('pathLength', '1');
-      pen.setAttribute('class', 'pen');
-      pen.style.animationDelay = t.toFixed(3) + 's';
-      pen.style.animationDuration = dur.toFixed(3) + 's';
-      pen.style.animationTimingFunction = PEN_EASE;
-      it.el.after(pen);
+      if (bound) it.el.style.setProperty('--ld', t.toFixed(3) + 's');
+      if (it.len >= 150) {
+        const pen = document.createElementNS(it.el.namespaceURI, 'path');
+        pen.setAttribute('d', it.el.getAttribute('d'));
+        pen.setAttribute('pathLength', '1');
+        pen.setAttribute('class', 'pen');
+        pen.style.animationDelay = t.toFixed(3) + 's';
+        pen.style.animationDuration = dur.toFixed(3) + 's';
+        pen.style.animationTimingFunction = PEN_EASE;
+        it.el.after(pen);
+      }
       end = Math.max(end, it.end);
-      t += Math.max(0.022, dur * (it.frame ? 0.28 : 0.18));
     });
-    svg.querySelectorAll('.lbl, .dash, .span, .leds, .acct-name').forEach((el) => {
-      if (el.classList.contains('bound')) { el.style.setProperty('--ld', items.find((it) => it.el === el).start.toFixed(3) + 's'); return; }
-      const g = el.closest('.grp');
-      const own = g && !g.classList.contains('g-team') ? items.filter((it) => g.contains(it.el)) : [];
-      let when = t0;
-      if (own.length) when = Math.max(...own.map((it) => it.end));
-      else {
-        const x = el.getBBox().x;
-        const bd = band(el);
-        items.forEach((it) => { if (it.band === bd && it.x <= x + 1) when = Math.max(when, it.end); });
+    // labels, the Tracing bars and the pool's lights: when the box they sit in is closed (the smallest one around
+    // them); dashed lines with the connecting lines
+    const boxes = items.filter((it) => !it.el.classList.contains('e') || it.el.classList.contains('bound'));
+    svg.querySelectorAll('.lbl, .dash:not(.bound), .span, .leds, .acct-name').forEach((el) => {
+      let when = t0 + 1.8;
+      if (!el.classList.contains('e')) {
+        const b = el.getBBox();
+        const cx = b.x + b.width / 2;
+        const cy = b.y + b.height / 2;
+        let best = null;
+        boxes.forEach((it) => {
+          const r = it.b;
+          if (cx < r.x || cx > r.x + r.width || cy < r.y || cy > r.y + r.height) return;
+          if (!best || r.width * r.height < best.b.width * best.b.height) best = it;
+        });
+        if (best) when = best.el.classList.contains('bound') ? t0 + 1.5 : best.end;
       }
       el.style.setProperty('--ld', (when + 0.05).toFixed(3) + 's');
     });

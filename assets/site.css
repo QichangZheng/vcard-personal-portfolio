@@ -321,7 +321,7 @@ html.pinned .chapter { display: none; }
 .js :is(.backdrop, .hero-mini) :is(.leds, .acct-name) { opacity: 0; }
 .js.drawn :is(.backdrop, .hero-mini) :is(.leds, .acct-name) { opacity: 1; transition: opacity .8s var(--ease) var(--ld, 2.8s), stroke .9s var(--ease); }
 .js.settled :is(.backdrop, .hero-mini) :is(.leds, .acct-name) { transition: opacity .6s var(--ease), stroke .9s var(--ease); }
-.js.drawn :is(.backdrop, .hero-mini) .bound { fill: rgba(29, 29, 31, .016); transition: fill 1.4s var(--ease) var(--fd, .3s), stroke .9s var(--ease), opacity .8s var(--ease) var(--ld, .9s); }
+.js.drawn :is(.backdrop, .hero-mini) .bound { fill: rgba(29, 29, 31, .016); transition: fill 1.4s var(--ease) var(--fd, .3s), stroke .9s var(--ease), opacity .8s var(--ease) var(--ld, .9s), stroke-dashoffset var(--dur, 1.6s) var(--pen, var(--ease-out)) var(--dd, 0s); }
 .js.settled :is(.backdrop, .hero-mini) .draw { stroke-dasharray: none; }
 /* first paint, the pen: a bright dot at the tip of each stroke as it is drawn (site.js sketch() adds one per stroke,
    with that stroke's delay, duration and easing, and removes them once the drawing has settled) */
