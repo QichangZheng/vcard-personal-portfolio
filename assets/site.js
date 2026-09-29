@@ -49,12 +49,6 @@
       box.setAttribute('aria-hidden', 'true');
       const svg = drawing.cloneNode(true);
       svg.setAttribute('viewBox', crop[0]);
-      // the drawing's own ids (the beam's gradients, the buzzing labels) made unique to this crop: a reference
-      // resolves to the first element with that id in the page, and on phones that is in the hidden backdrop
-      const sfx = '-' + s.dataset.scene;
-      svg.querySelectorAll('[id]').forEach((el) => { el.id += sfx; });
-      svg.querySelectorAll('[fill^="url(#"]').forEach((el) => { el.setAttribute('fill', el.getAttribute('fill').replace(/\)$/, sfx + ')')); });
-      svg.querySelectorAll('use[href^="#"]').forEach((el) => { el.setAttribute('href', el.getAttribute('href') + sfx); });
       box.appendChild(svg);
       const col = s.querySelector('.col');
       // chapters: the drawing sits between the subtitle and the points, so the scene starts at its heading
@@ -74,8 +68,10 @@
       new IntersectionObserver((es) => es.forEach((e) => {
         const on = e.isIntersecting && e.intersectionRatio >= 0.599;
         if (on === e.target.classList.contains('run')) return;
-        if (on) teamMini.svg.querySelectorAll('.fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = FX_ENTRY_MS; }));
+        // (while it does not run, its moving parts fade out rather than stand frozen mid-message: site.css)
         e.target.classList.toggle('run', on);
+        if (on) teamMini.svg.querySelectorAll('.fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = FX_ENTRY_MS; }));
+        wakeShakes();
       }), { threshold: 0.6 })
         .observe(teamMini.box);
     } else teamMini.box.classList.add('run');
@@ -232,8 +228,87 @@
         drawing.querySelectorAll('.fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = FX_ENTRY; }));
       }
       root.classList.remove('fx-reset');
+      wakeShakes();
     }, 200);
   }
+
+  /* ---------- The vibration: a card shakes when it sends and the moment the beam reaches it ---------- */
+  // Not an animation: each frame, while the loop runs, the loop's own clock (the currentTime of one of its CSS
+  // animations) says whether a card is inside one of its vibrations (data-shake, written by gen.py), and the card's
+  // group gets that offset as its transform attribute; outside them it has none. So it follows every pause, seek and
+  // restart of the loop exactly, never becomes a composited layer (a transform animation would keep one per card for
+  // the whole loop and, on 1x screens, rasterise it at the wrong scale after a camera move), and exists only where the
+  // loop runs. Its size is set in screen pixels as it starts (data-fx-shake-px), the same on every screen.
+  const shakeSets = [];
+  let shakeRaf = 0;
+  function bezierEase(x1, y1, x2, y2) {
+    const f = (t, a, b) => 3 * a * t * (1 - t) * (1 - t) + 3 * b * t * t * (1 - t) + t * t * t;
+    return (x) => {
+      let lo = 0, hi = 1;
+      for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (f(m, x1, x2) < x) lo = m; else hi = m; }
+      return f((lo + hi) / 2, y1, y2);
+    };
+  }
+  function shakeSet(svg, live, px) {
+    const shape = (svg.getAttribute('data-fx-shake') || '').split(';').filter(Boolean).map((p) => p.split(',').map(Number));
+    const swing = bezierEase(...(svg.getAttribute('data-fx-swing') || '.37,0,.63,1').split(',').map(Number));
+    const peaks = {};
+    (svg.getAttribute('data-fx-shake-px') || '').split(',').forEach((p) => { const [k, v] = p.split(':'); peaks[k] = +v; });
+    const groups = Array.from(svg.querySelectorAll('.shake')).map((g) => ({ g, times: g.dataset.shake.split(',').map(Number), start: null, amp: 0, x: 0 }));
+    if (!shape.length || !groups.length) return;
+    const len = shape[shape.length - 1][0];
+    const at = (dt) => {
+      for (let i = 1; i < shape.length; i++) {
+        if (dt <= shape[i][0]) { const [t0, v0] = shape[i - 1], [t1, v1] = shape[i]; return v0 + (v1 - v0) * swing((dt - t0) / (t1 - t0)); }
+      }
+      return 0;
+    };
+    const loop = parseFloat(svg.getAttribute('data-fx-loop') || '18000');
+    let ref = null;
+    shakeSets.push({ svg, groups, live, len, at, loop, peak: () => peaks[px()] || 2,
+      clock() {
+        if (!ref || !ref.effect || !svg.contains(ref.effect.target) || ref.playState === 'idle') {
+          ref = null;
+          for (const el of svg.querySelectorAll('.fx')) { const a = el.getAnimations()[0]; if (a) { ref = a; break; } }
+        }
+        return ref && ref.currentTime != null ? ((ref.currentTime % loop) + loop) % loop : null;
+      } });
+  }
+  function shakeTick() {
+    shakeRaf = 0;
+    let again = false;
+    for (const set of shakeSets) {
+      const on = !reduced && set.live();
+      const T = on ? set.clock() : null;
+      if (on) again = true;
+      for (const s of set.groups) {
+        let x = 0;
+        if (T != null) {
+          for (const t0 of s.times) {
+            const dt = T - t0;
+            if (dt < 0 || dt >= set.len) continue;
+            if (s.start !== t0) { s.start = t0; s.amp = set.peak() / (set.svg.getScreenCTM() || { a: 1 }).a; }
+            x = s.amp * set.at(dt);
+            break;
+          }
+        }
+        if (!x) s.start = null;
+        if (x !== s.x) {
+          s.x = x;
+          if (x) s.g.setAttribute('transform', 'translate(' + x.toFixed(3) + ' 0)');
+          else s.g.removeAttribute('transform');
+        }
+      }
+    }
+    if (again) shakeRaf = window.requestAnimationFrame(shakeTick);
+  }
+  function wakeShakes() { if (!shakeRaf) shakeRaf = window.requestAnimationFrame(shakeTick); }
+  if (drawing) {
+    // the backdrop: in the hero and chapter 04, not while restartStory fades the moving parts (the loop is jumping)
+    shakeSet(drawing, () => /^(hero|w4)$/.test(root.getAttribute('data-scene') || '') && !root.classList.contains('fx-reset'),
+      () => (root.getAttribute('data-scene') === 'w4' ? 'w4' : 'hero'));
+  }
+  if (teamMini) shakeSet(teamMini.svg, () => teamMini.box.classList.contains('run'), () => 'mini');
 
   /* ---------- Current scene ---------- */
   const timers = new WeakMap();
@@ -251,6 +326,7 @@
     // an invisible drawing takes its new framing at once and only fades in
     if (drawing) root.classList.toggle('dg-cut', +getComputedStyle(drawing).opacity < 0.05);
     root.setAttribute('data-scene', scene.dataset.scene);
+    wakeShakes();
     const target = scene.dataset.nav || '';
     navLinks.forEach((a) => {
       if (a.dataset.go === target) a.setAttribute('aria-current', 'true');
@@ -626,6 +702,7 @@
     }
     setMode();
     requestFrame();
+    wakeShakes();
   };
   if (rmQuery.addEventListener) rmQuery.addEventListener('change', onRm);
 
