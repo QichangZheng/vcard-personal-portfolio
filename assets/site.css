@@ -671,9 +671,10 @@ html.intro-on:not(.intro-run) :is(.hero .lede, .hero .role, .hero-mini, .nav) { 
 .typer { position: relative; max-width: 100%; }
 .typer p { margin: 0; }
 .typer .ty1 { font-size: clamp(30px, 3.4vw, 48px); line-height: 1.2; font-weight: 600; letter-spacing: -.035em; color: var(--ink); }
-.typer :is(.ty2, .ty3) { font-size: clamp(22px, 2.5vw, 35px); line-height: 1.35; letter-spacing: -.02em; }
-.typer .ty2 { margin-top: .55em; font-weight: 500; color: var(--ink2); }
-.typer .ty3 { margin-top: .12em; font-weight: 400; color: var(--mute); }
+/* lines 2 and 3 share one size and one weight; only their colours differ */
+.typer :is(.ty2, .ty3) { font-size: clamp(22px, 2.5vw, 35px); line-height: 1.35; letter-spacing: -.02em; font-weight: 400; }
+.typer .ty2 { margin-top: .55em; color: var(--ink2); }
+.typer .ty3 { margin-top: .12em; color: var(--mute); }
 .typer .hl { color: var(--accent); }   /* the same blue as the moving parts of the drawing */
 html[data-lang="zh"] .typer .ty1 { letter-spacing: .02em; }   /* same tracking as the hero name it becomes */
 html[data-lang="zh"] .typer :is(.ty2, .ty3) { letter-spacing: .03em; }
