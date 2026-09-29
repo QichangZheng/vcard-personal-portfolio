@@ -20,7 +20,7 @@
     w1: ['-4 84 480 300', 12, 17],
     w2: ['342 100 468 292', 12, 18],
     w3: ['500 6 556 348', 12, 19],
-    w4: ['318 452 504 315', 12, 17],
+    w4: ['136 452 516 322.5', 12, 17],   // the pool, Projects A and B: every beat of the loop happens here
   };
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
 
@@ -49,6 +49,12 @@
       box.setAttribute('aria-hidden', 'true');
       const svg = drawing.cloneNode(true);
       svg.setAttribute('viewBox', crop[0]);
+      // the drawing's own ids (the beam's gradients, the buzzing labels) made unique to this crop: a reference
+      // resolves to the first element with that id in the page, and on phones that is in the hidden backdrop
+      const sfx = '-' + s.dataset.scene;
+      svg.querySelectorAll('[id]').forEach((el) => { el.id += sfx; });
+      svg.querySelectorAll('[fill^="url(#"]').forEach((el) => { el.setAttribute('fill', el.getAttribute('fill').replace(/\)$/, sfx + ')')); });
+      svg.querySelectorAll('use[href^="#"]').forEach((el) => { el.setAttribute('href', el.getAttribute('href') + sfx); });
       box.appendChild(svg);
       const col = s.querySelector('.col');
       // chapters: the drawing sits between the subtitle and the points, so the scene starts at its heading
@@ -58,12 +64,19 @@
       minis.push({ box, svg, width: parseFloat(crop[0].split(' ')[2]), px: crop[1], cap: crop[2] });
     });
   }
-  // the chapter-04 crop runs its loop while it is on screen (not while its chapter is current: on phones the
-  // chapter changes when its top passes 30% of the screen, so the crop can be in view under another chapter)
+  // the chapter-04 crop runs its loop while most of it is on screen (not while its chapter is current: on phones the
+  // chapter changes when its top passes 30% of the screen, so the crop can be in view under another chapter). Each
+  // time it comes into view the story opens at its start, as chapter 04 does on wider screens (restartStory).
   const teamMini = minis.find((m) => m.box.dataset.hl === 'w4');
+  const FX_ENTRY_MS = drawing ? parseFloat(drawing.getAttribute('data-fx-entry') || '0') * 1000 : 0;
   if (teamMini) {
     if ('IntersectionObserver' in window) {
-      new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle('run', e.isIntersecting)), { threshold: 0.01 })
+      new IntersectionObserver((es) => es.forEach((e) => {
+        const on = e.isIntersecting && e.intersectionRatio >= 0.599;
+        if (on === e.target.classList.contains('run')) return;
+        if (on) teamMini.svg.querySelectorAll('.fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = FX_ENTRY_MS; }));
+        e.target.classList.toggle('run', on);
+      }), { threshold: 0.6 })
         .observe(teamMini.box);
     } else teamMini.box.classList.add('run');
   }
@@ -207,7 +220,7 @@
   /* ---------- Chapter 04 opens the Agent Team story at its start ---------- */
   // The loop also runs in the hero and is paused in 01-03, so without this chapter 04 would open anywhere in it.
   // The moving parts fade out for 200 ms (the camera is moving), every loop animation jumps to the loop's last
-  // breath of rest (data-fx-entry, written by gen.py) and they fade back in: the lease starts about 1 s later.
+  // breath of rest (data-fx-entry, written by gen.py) and they fade back in: the first message starts about 1 s later.
   const FX_ENTRY = drawing ? parseFloat(drawing.getAttribute('data-fx-entry') || '0') * 1000 : 0;
   let fxTimer = 0;
   function restartStory() {
