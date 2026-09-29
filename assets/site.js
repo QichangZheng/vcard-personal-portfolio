@@ -76,8 +76,8 @@
         .observe(teamMini.box);
     } else teamMini.box.classList.add('run');
   }
-  // chapters 01-03: each crop runs its chapter's own loop the same way, from the loop's start
-  minis.filter((m) => /^w[123]$/.test(m.box.dataset.hl)).forEach((m) => {
+  // chapters 01-03 and the hero: each crop runs its own loop the same way, from the loop's start
+  minis.filter((m) => /^(w[123]|hero)$/.test(m.box.dataset.hl)).forEach((m) => {
     if (!('IntersectionObserver' in window)) { m.box.classList.add('run'); return; }
     new IntersectionObserver((es) => es.forEach((e) => {
       const on = e.isIntersecting && e.intersectionRatio >= 0.599;
@@ -392,7 +392,7 @@
     }
     if (!instant && prev) redraw(scene);
     if (prev && scene.dataset.scene === 'w4') restartStory();
-    if (prev && /^w[123]$/.test(scene.dataset.scene)) restartChapter(scene.dataset.scene);
+    if (prev && /^(w[123]|hero)$/.test(scene.dataset.scene)) restartChapter(scene.dataset.scene);
     swapChapter(prev, instant);
   }
 
