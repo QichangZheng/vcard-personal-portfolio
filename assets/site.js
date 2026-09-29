@@ -957,6 +957,77 @@
   // while the intro runs, the page behind the curtain can be neither clicked nor tabbed into
   const behind = [nav, document.getElementById('main'), document.querySelector('.skip')].filter(Boolean);
   const setBehind = (on) => behind.forEach((el) => { el.inert = on; });
+  /* ---------- First paint: the drawing is sketched in, stroke by stroke, as if drawn live ---------- */
+  // Each line and box is traced by a pen (a bright dot at its tip) at an even pace, left to right, the platform first
+  // and the Agent Team below it after; strokes overlap a little, like a quick hand. A box's label and fill arrive once
+  // it is closed; dashed lines, captions and the pool's lights as the pen passes them. Returns when the last stroke
+  // ends (s after the drawing starts); the page settles only after that (settleLater).
+  const PEN_SPEED = 950;        // drawing units per second along a stroke
+  const PEN_EASE = 'cubic-bezier(.45, .05, .4, 1)';
+  function sketch(svg, t0) {
+    if (!svg || !svg.getBoundingClientRect().width) return 0;
+    const band = (el) => (el.closest('.g-team') ? 1 : 0);
+    // the two product panels' frames are drawn too, each first in its band (the pen outlines the panel, then fills it)
+    svg.querySelectorAll('.bound').forEach((el) => { el.setAttribute('pathLength', '1'); el.classList.add('draw'); });
+    const items = Array.from(svg.querySelectorAll('.draw')).map((el) => {
+      const b = el.getBBox();
+      return { el, x: b.x, y: b.y, len: el.getTotalLength(), band: band(el), frame: el.classList.contains('bound') ? 0 : 1 };
+    }).sort((a, b) => a.band - b.band || a.frame - b.frame || a.x - b.x || a.y - b.y);
+    let t = t0;
+    let end = t0;
+    items.forEach((it) => {
+      const dur = Math.min(0.75, Math.max(0.12, it.len / PEN_SPEED));
+      it.start = t;
+      it.end = t + dur;
+      it.el.style.setProperty('--dd', t.toFixed(3) + 's');
+      it.el.style.setProperty('--dur', dur.toFixed(3) + 's');
+      it.el.style.setProperty('--pen', PEN_EASE);
+      it.el.style.setProperty('--fd', (t + dur * 0.8).toFixed(3) + 's');
+      const pen = document.createElementNS(it.el.namespaceURI, 'path');
+      pen.setAttribute('d', it.el.getAttribute('d'));
+      pen.setAttribute('pathLength', '1');
+      pen.setAttribute('class', 'pen');
+      pen.style.animationDelay = t.toFixed(3) + 's';
+      pen.style.animationDuration = dur.toFixed(3) + 's';
+      pen.style.animationTimingFunction = PEN_EASE;
+      it.el.after(pen);
+      end = Math.max(end, it.end);
+      t += Math.max(0.022, dur * (it.frame ? 0.28 : 0.18));
+    });
+    svg.querySelectorAll('.lbl, .dash, .span, .leds, .acct-name').forEach((el) => {
+      if (el.classList.contains('bound')) { el.style.setProperty('--ld', items.find((it) => it.el === el).start.toFixed(3) + 's'); return; }
+      const g = el.closest('.grp');
+      const own = g && !g.classList.contains('g-team') ? items.filter((it) => g.contains(it.el)) : [];
+      let when = t0;
+      if (own.length) when = Math.max(...own.map((it) => it.end));
+      else {
+        const x = el.getBBox().x;
+        const bd = band(el);
+        items.forEach((it) => { if (it.band === bd && it.x <= x + 1) when = Math.max(when, it.end); });
+      }
+      el.style.setProperty('--ld', (when + 0.05).toFixed(3) + 's');
+    });
+    return end;
+  }
+  let penEnd = 0;
+  let drawnAt = 0;
+  function markDrawn() {
+    drawnAt = window.performance.now();
+    root.classList.add('drawn');
+  }
+  // the loops start (settled) only once the last stroke is down
+  function settleLater(ms) {
+    const wait = Math.max(ms, drawnAt + penEnd * 1000 + 400 - window.performance.now());
+    window.setTimeout(() => {
+      root.classList.add('settled');
+      document.querySelectorAll('.diagram .pen').forEach((p) => p.remove());
+    }, wait);
+  }
+  function sketchAll(t0) {
+    if (!canAnimate()) return;
+    const heroMini = minis.find((m) => m.box.dataset.hl === 'hero');
+    penEnd = Math.max(sketch(drawing, t0), heroMini ? sketch(heroMini.svg, t0) : 0);
+  }
   function introDone() {
     introOn = false;
     setBehind(false);
@@ -964,7 +1035,7 @@
     introEl.remove();
     const alt = document.querySelector('#name .alt');
     if (alt && canAnimate()) alt.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, easing: EASE });
-    window.setTimeout(() => root.classList.add('settled'), 2600);
+    settleLater(2600);
   }
   if (reduced) {
     scenes.forEach((s) => s.classList.add('is-in'));
@@ -973,14 +1044,15 @@
     root.classList.add('intro-run');
     setBehind(true);
     first.classList.add('is-in');
-    // the drawing and the rest of the hero arrive while the name moves
-    const onMove = () => root.classList.add('drawn', 'intro-out');
+    // the drawing and the rest of the hero arrive while the name moves; the pen starts as the curtain lifts
+    sketchAll(0.55);
+    const onMove = () => { markDrawn(); root.classList.add('intro-out'); };
     playTypeIntro(onMove, introDone);
   } else {
     if (pinned) zoomIn(first, 0.96, 150, 1200);
     else reveal(first, true, 150);
-    window.requestAnimationFrame(() => window.requestAnimationFrame(() => root.classList.add('drawn')));
-    window.setTimeout(() => root.classList.add('settled'), 3600);
+    sketchAll(0.15);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => { markDrawn(); settleLater(3600); }));
   }
   exitFade();
 })();

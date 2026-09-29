@@ -276,7 +276,7 @@ html.pinned .chapter { display: none; }
   stroke-width: 1;
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: stroke .9s var(--ease), fill .9s var(--ease), stroke-width .9s var(--ease), stroke-dashoffset 1.6s var(--ease-out) var(--dd, 0s);
+  transition: stroke .9s var(--ease), fill .9s var(--ease), stroke-width .9s var(--ease), stroke-dashoffset var(--dur, 1.6s) var(--pen, var(--ease-out)) var(--dd, 0s);
 }
 .diagram .n { fill: #fff; }
 .diagram .tint { fill: rgba(29, 29, 31, .03); stroke: #d4d5da; }
@@ -299,7 +299,7 @@ html.pinned .chapter { display: none; }
 .diagram .lbl.end { text-anchor: end; font-size: 12px; }
 .diagram .lbl.st { text-anchor: start; }
 /* Tracing's waterfall: a trace's spans as short bars (chapter 01's loop fills them in, in blue) */
-.diagram .span { fill: none; stroke: #e1e2e6; stroke-width: 3; stroke-linecap: round; transition: stroke .9s var(--ease), opacity 1.2s var(--ease) .9s; }
+.diagram .span { fill: none; stroke: #e1e2e6; stroke-width: 3; stroke-linecap: round; transition: stroke .9s var(--ease), opacity .8s var(--ease) var(--ld, .9s); }
 [data-scene="w1"] .backdrop .g-nac .span { stroke: #d6dbef; }
 .js :is(.backdrop, .hero-mini) .span { opacity: 0; }
 .js.drawn :is(.backdrop, .hero-mini) .span { opacity: 1; }
@@ -310,19 +310,28 @@ html.pinned .chapter { display: none; }
 .js.drawn :is(.backdrop, .hero-mini) .draw { stroke-dashoffset: 0; }
 /* node fills arrive with their outlines, not before them */
 .js :is(.backdrop, .hero-mini) .n { fill-opacity: 0; }
-.js.drawn :is(.backdrop, .hero-mini) .n { fill-opacity: 1; transition: fill-opacity 1s var(--ease) calc(var(--dd, .6s) + .35s), stroke .9s var(--ease), fill .9s var(--ease), stroke-width .9s var(--ease), stroke-dashoffset 1.6s var(--ease-out) var(--dd, 0s); }
+.js.drawn :is(.backdrop, .hero-mini) .n { fill-opacity: 1; transition: fill-opacity .7s var(--ease) var(--fd, calc(var(--dd, .6s) + .35s)), stroke .9s var(--ease), fill .9s var(--ease), stroke-width .9s var(--ease), stroke-dashoffset var(--dur, 1.6s) var(--pen, var(--ease-out)) var(--dd, 0s); }
 .js :is(.backdrop, .hero-mini) :is(.lbl, .dash) { opacity: 0; }
 .js :is(.backdrop, .hero-mini) :is(.slot.busy, .tint, .bound) { fill: transparent; }
-.js.drawn :is(.backdrop, .hero-mini) :is(.lbl, .dash) { opacity: 1; transition: opacity 1.2s var(--ease) .9s, fill .9s var(--ease), stroke .9s var(--ease); }
-.js.drawn :is(.backdrop, .hero-mini) .slot.busy { fill: rgba(142, 142, 147, .16); transition: fill 1.2s var(--ease) calc(var(--dd, .65s) + .35s), stroke-dashoffset 1.6s var(--ease-out) var(--dd, 0s); }
-.js.drawn :is(.backdrop, .hero-mini) .tint { fill: rgba(29, 29, 31, .03); transition: fill 1.4s var(--ease) calc(var(--dd, .25s) + .35s), stroke .9s var(--ease), stroke-dashoffset 1.6s var(--ease-out) var(--dd, 0s); }
+.js.drawn :is(.backdrop, .hero-mini) :is(.lbl, .dash) { opacity: 1; transition: opacity .8s var(--ease) var(--ld, .9s), fill .9s var(--ease), stroke .9s var(--ease); }
+.js.drawn :is(.backdrop, .hero-mini) .slot.busy { fill: rgba(142, 142, 147, .16); transition: fill .8s var(--ease) var(--fd, calc(var(--dd, .65s) + .35s)), stroke-dashoffset var(--dur, 1.6s) var(--pen, var(--ease-out)) var(--dd, 0s); }
+.js.drawn :is(.backdrop, .hero-mini) .tint { fill: rgba(29, 29, 31, .03); transition: fill 1s var(--ease) var(--fd, calc(var(--dd, .25s) + .35s)), stroke .9s var(--ease), stroke-dashoffset var(--dur, 1.6s) var(--pen, var(--ease-out)) var(--dd, 0s); }
 /* the Agent Team panel draws after the platform: its labels and route wait for their outlines */
-.js.drawn :is(.backdrop, .hero-mini) .g-team :is(.lbl, .dash:not(.bound)) { transition: opacity 1.2s var(--ease) 1.9s, fill .9s var(--ease), stroke .9s var(--ease); }
+.js.drawn :is(.backdrop, .hero-mini) .g-team :is(.lbl, .dash:not(.bound)) { transition: opacity .8s var(--ease) var(--ld, 1.9s), fill .9s var(--ease), stroke .9s var(--ease); }
 .js :is(.backdrop, .hero-mini) :is(.leds, .acct-name) { opacity: 0; }
-.js.drawn :is(.backdrop, .hero-mini) :is(.leds, .acct-name) { opacity: 1; transition: opacity 1.2s var(--ease) 2.8s, stroke .9s var(--ease); }
+.js.drawn :is(.backdrop, .hero-mini) :is(.leds, .acct-name) { opacity: 1; transition: opacity .8s var(--ease) var(--ld, 2.8s), stroke .9s var(--ease); }
 .js.settled :is(.backdrop, .hero-mini) :is(.leds, .acct-name) { transition: opacity .6s var(--ease), stroke .9s var(--ease); }
-.js.drawn :is(.backdrop, .hero-mini) .bound { fill: rgba(29, 29, 31, .016); transition: fill 1.4s var(--ease) .3s, stroke .9s var(--ease), opacity 1.2s var(--ease) .9s; }
+.js.drawn :is(.backdrop, .hero-mini) .bound { fill: rgba(29, 29, 31, .016); transition: fill 1.4s var(--ease) var(--fd, .3s), stroke .9s var(--ease), opacity .8s var(--ease) var(--ld, .9s); }
 .js.settled :is(.backdrop, .hero-mini) .draw { stroke-dasharray: none; }
+/* first paint, the pen: a bright dot at the tip of each stroke as it is drawn (site.js sketch() adds one per stroke,
+   with that stroke's delay, duration and easing, and removes them once the drawing has settled) */
+.diagram .pen { fill: none; stroke: var(--accent); stroke-width: 3.4; stroke-linecap: round; stroke-dasharray: .0001 2; opacity: 0; pointer-events: none; }
+.js.drawn :is(.backdrop, .hero-mini) .pen { animation-name: pen; animation-fill-mode: forwards; }
+@keyframes pen {
+  0% { opacity: 1; stroke-dashoffset: 0; }
+  94% { opacity: 1; }
+  100% { opacity: 0; stroke-dashoffset: -1; }
+}
 /* after first paint, a scene change recolours fills together with strokes (the delays above are for first paint only) */
 .js.settled :is(.backdrop, .hero-mini) :is(.tint, .slot.busy, .bound) { transition: fill .9s var(--ease), stroke .9s var(--ease); }
 
@@ -1399,7 +1408,7 @@ main { transition: opacity .3s var(--ease); }
   .js .backdrop .n { fill-opacity: 1; }
   .js .backdrop :is(.leds, .acct-name) { opacity: 1; }
   .diagram .fx { animation: none !important; }
-  .diagram :is(.live, .cl) { display: none; }
+  .diagram :is(.live, .cl, .pen) { display: none; }
   .veil::before { display: none; }
   *, *::before, *::after { transition-duration: .01ms !important; transition-delay: 0s !important; animation-duration: .01ms !important; }
   ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
