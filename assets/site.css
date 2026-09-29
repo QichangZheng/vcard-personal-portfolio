@@ -1364,6 +1364,19 @@ html[data-lang="zh"] .contact h2 { letter-spacing: .02em; }
 .elsewhere a:hover, .phones a:hover { color: var(--accent); }
 .phones { margin-top: 14px; font-size: 14px; color: var(--mute); font-variant-numeric: tabular-nums; }
 .where { margin-top: 10px; font-size: 14px; color: var(--mute); }
+/* the CV: one quiet dark pill under the address, the only button on the page */
+.cv { margin-top: 26px; }
+.cv-btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 12px 20px 12px 17px; border-radius: 999px;
+  font-size: 15px; line-height: 1; color: #fff; text-decoration: none;
+  background: var(--ink);
+  box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .45);
+  transition: background-color .3s var(--ease), transform .3s var(--ease-out), box-shadow .3s var(--ease);
+}
+.cv-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.cv-btn:hover { background: #000; transform: translateY(-1px); box-shadow: 0 14px 28px -14px rgba(0, 0, 0, .5); }
+.cv-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .foot { position: absolute; left: var(--gutter); bottom: 28px; color: var(--faint); }
 .foot small { font-size: 12px; }
 
