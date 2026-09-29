@@ -111,8 +111,88 @@ html:not(.js) .lang { display: none; }
 
 @media (min-width: 721px) {
   /* same pill width in both languages, so the language toggle never moves under the cursor */
-  .nav { width: 440px; justify-content: space-between; }
-  .links { flex: 1; }
+  html:not(.pinned) .nav { width: 440px; justify-content: space-between; }
+  html:not(.pinned) .links { flex: 1; }
+}
+
+/* the side index's parts (only the pinned desktop layout shows them, below) */
+.links a.sub, .links .thumb { display: none; }
+
+/* ---------- Pinned desktop: the navigation is a slim glass bar on the left edge ----------
+   Its words run top to bottom, like the page (vertical writing: upright in Chinese, turned in English), with the
+   four chapters under Work as their numbers (hover one for its title). A blue-tinted glass slider sits behind the
+   current scene and glides to the next one with a little spring as the page steps from scene to scene (site.js
+   placeThumb). The mark sits top left, the language switch top right; the chapter pill gives way to the bar. */
+html.pinned .nav {
+  top: 0; left: 0; width: auto; height: auto; padding: 0;
+  transform: none; border-radius: 0;
+  background: none; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none;
+  pointer-events: none;
+}
+html.pinned .nav .mark { position: fixed; top: 22px; left: 22px; pointer-events: auto; font-size: 14px; }
+html.pinned .lang {
+  position: fixed; top: 16px; right: 20px; margin: 0; padding: 3px;
+  border-radius: 999px; pointer-events: auto;
+  background: rgba(255, 255, 255, .74);
+  -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .06), 0 10px 30px -12px rgba(0, 0, 0, .12);
+}
+html.pinned .lang::before { display: none; }
+html.pinned .lang button { padding: 8px 11px; }
+html.pinned .links {
+  position: fixed; left: 18px; top: 50%; transform: translateY(-50%);
+  flex-direction: column; align-items: center; gap: 2px;
+  width: 42px; padding: 5px 0; border-radius: 999px; pointer-events: auto;
+  background: rgba(255, 255, 255, .72);
+  -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .06), 0 10px 30px -12px rgba(0, 0, 0, .12);
+}
+html.pinned .links a {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; padding: 12px 0; border-radius: 999px;
+  font-size: 13px; letter-spacing: .12em; color: var(--mute); background: none;
+  transition: color .45s var(--ease);
+}
+html[data-lang="en"].pinned .links a { letter-spacing: .03em; }
+html.pinned .links .t { writing-mode: vertical-rl; white-space: nowrap; }
+html.pinned .links a.sub { display: flex; padding: 7px 0; font-size: 11px; letter-spacing: 0; }
+html.pinned .links .n { display: inline-block; text-combine-upright: all; -webkit-text-combine: horizontal; font-variant-numeric: tabular-nums; }
+html.pinned .links a:hover { color: var(--ink); }
+html.pinned .links a[aria-current="true"] { color: var(--ink); background: none; }
+html.pinned .links a.is-thumb { color: #2e46b3; }
+/* a chapter's title, beside the bar while the pointer (or focus) is on its number */
+html.pinned .links .full {
+  position: absolute; left: calc(100% + 14px); top: 50%;
+  transform: translate(-4px, -50%);
+  padding: 7px 11px; border-radius: 10px;
+  font-size: 12.5px; letter-spacing: 0; white-space: nowrap; color: var(--ink);
+  background: rgba(255, 255, 255, .9);
+  -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .06), 0 10px 26px -12px rgba(0, 0, 0, .16);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s var(--ease), transform .25s var(--ease-out);
+}
+html.pinned .links a:is(:hover, :focus-visible) .full { opacity: 1; transform: translate(0, -50%); }
+/* the slider: blue-tinted glass, lit along its top edge, behind the current scene's word */
+html.pinned .links .thumb {
+  display: block; position: absolute; left: 5px; top: 0; z-index: 0;
+  width: 32px; height: 40px; border-radius: 999px;
+  background: linear-gradient(180deg, rgba(110, 136, 240, .22), rgba(63, 91, 208, .13));
+  border: 1px solid rgba(63, 91, 208, .2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .75), inset 0 -1px 1px rgba(63, 91, 208, .1), 0 6px 16px -8px rgba(63, 91, 208, .6);
+  -webkit-backdrop-filter: blur(4px) saturate(160%); backdrop-filter: blur(4px) saturate(160%);
+  opacity: 0;
+  transition: transform .7s cubic-bezier(.3, 1.3, .5, 1), height .7s cubic-bezier(.3, 1.3, .5, 1), opacity .4s var(--ease);
+}
+html.pinned .links .thumb.on { opacity: 1; }
+html.pinned .links .thumb.jump { transition: opacity .4s var(--ease); }
+html.pinned .chapter { display: none; }
+@media (max-width: 1279px) {
+  /* the gutter is narrower here: a narrower bar, closer to the edge */
+  html.pinned .links { left: 10px; width: 38px; }
+  html.pinned .links a, html.pinned .links .thumb { width: 30px; }
+  html.pinned .nav .mark { left: 16px; }
 }
 
 .chapter {
@@ -1151,8 +1231,8 @@ main { transition: opacity .3s var(--ease); }
   .backdrop .diagram { width: 50vw; right: -1vw; top: 52%; }
 }
 @media (min-width: 721px) {
-  html[data-lang="zh"] .nav { width: 404px; }
-  html[data-lang="zh"] .links a { padding-left: 15px; padding-right: 15px; }
+  html[data-lang="zh"]:not(.pinned) .nav { width: 404px; }
+  html[data-lang="zh"]:not(.pinned) .links a { padding-left: 15px; padding-right: 15px; }
 }
 
 @media (max-width: 720px) {

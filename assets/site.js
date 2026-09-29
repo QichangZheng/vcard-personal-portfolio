@@ -171,6 +171,29 @@
     scenes.forEach((s) => s.classList.add('is-in'));
   }
 
+  /* ---------- The side bar's slider (pinned desktop): glides to the current scene's word ---------- */
+  const thumb = links.querySelector('.thumb');
+  let thumbPlaced = false;
+  function placeThumb() {
+    if (!thumb) return;
+    const cur = navLinks.filter((a) => a.getAttribute('aria-current') === 'true');
+    const at = cur.find((a) => a.classList.contains('sub')) || cur[0];
+    navLinks.forEach((a) => a.classList.toggle('is-thumb', a === at && pinned));
+    if (!at || !pinned || !at.offsetHeight) { thumb.classList.remove('on'); return; }
+    // the first time (and after the bar was hidden) it appears in place instead of sliding in from the top
+    if (!thumbPlaced) thumb.classList.add('jump');
+    thumb.style.transform = 'translateY(' + at.offsetTop + 'px)';
+    thumb.style.height = at.offsetHeight + 'px';
+    thumb.style.left = at.offsetLeft + 'px';
+    thumb.classList.add('on');
+    if (!thumbPlaced) {
+      thumbPlaced = true;
+      void thumb.offsetHeight;
+      window.requestAnimationFrame(() => thumb.classList.remove('jump'));
+    }
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { thumbPlaced = false; placeThumb(); });
+
   /* ---------- Chapter pill ---------- */
   function labelOf(scene) {
     if (!scene || scene.dataset.scene === 'hero') return null;
@@ -349,9 +372,11 @@
     wakeShakes();
     const target = scene.dataset.nav || '';
     navLinks.forEach((a) => {
-      if (a.dataset.go === target) a.setAttribute('aria-current', 'true');
+      // a section, and (in the side bar) the chapter itself
+      if (a.dataset.go === target || a.dataset.go === scene.id) a.setAttribute('aria-current', 'true');
       else a.removeAttribute('aria-current');
     });
+    placeThumb();
     if (pinned) {
       if (prev) {
         if (!instant) zoomOut(prev, OUT[dir]); // before the class change: it must start from what is on screen
@@ -549,6 +574,8 @@
     }
     sizeMiniLabels();
     if (active) scrollToScene(active);
+    thumbPlaced = false;
+    placeThumb();
   }
   let resizeTimer = 0;
   let resizeWidth = window.innerWidth;
@@ -664,6 +691,7 @@
     });
     paintChapter();
     tick();
+    placeThumb();
   }
   let pendingLang = null;
   langButtons.forEach((b) => {
