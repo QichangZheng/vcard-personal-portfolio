@@ -20,7 +20,7 @@
     w1: ['-4 84 480 300', 12, 17],
     w2: ['342 100 468 292', 12, 18],
     w3: ['500 6 556 348', 12, 19],
-    w4: ['136 452 516 322.5', 12, 17],   // the pool, Projects A and B: every beat of the loop happens here
+    w4: ['116 452 744 322.5', 12, 18],   // the whole team panel: the pool and all three projects (every agent takes part)
   };
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
 
@@ -515,6 +515,7 @@
   function setMode() {
     const want = fitsPinned();
     if (want !== pinned) {
+      landGlide();   // the hero title is about to move
       // switch without animating every layer between the two layouts
       root.classList.add('mode-switch');
       pinned = want;
@@ -734,6 +735,17 @@
   // slow at both ends and quicker in the middle (the owner's call: no corner in the path)
   let gliding = false;
   const GLIDE_MS = 1300;
+  const textRange = document.createRange();
+  function textBox(el) { textRange.selectNodeContents(el); return textRange.getBoundingClientRect(); }
+  // an empty inline-block sits with its bottom on the line's baseline
+  function baseline(el) {
+    const probe = document.createElement('span');
+    probe.style.cssText = 'display:inline-block;width:0;height:0;';
+    el.appendChild(probe);
+    const y = probe.getBoundingClientRect().top;
+    probe.remove();
+    return y;
+  }
   function glide(from, to, delay, onEnd) {
     let last = null;
     // a name that lands on two lines: the second word sets off a little later, so it passes under
@@ -743,11 +755,17 @@
     from.forEach((w, i) => {
       const target = to[i];
       if (!target) return;
+      // land the letters, not the boxes: the typed line and the hero title have different line heights,
+      // so their boxes hold the glyphs at different depths (matching boxes left the name ~8px low,
+      // and it jumped up when the real title took over)
       const a = w.getBoundingClientRect();
-      const b = target.getBoundingClientRect();
-      const k = a.width ? b.width / a.width : 1;
+      const at = textBox(w);
+      const bt = textBox(target);
+      const k = at.width ? bt.width / at.width : 1;
+      const dx = bt.left - a.left - (at.left - a.left) * k;   // the word scales about its top-left corner
+      const dy = baseline(target) - a.top - (baseline(w) - a.top) * k;   // baseline onto baseline
       last = w.animate(
-        [{ transform: 'translate(0px, 0px) scale(1)' }, { transform: 'translate(' + (b.left - a.left) + 'px, ' + (b.top - a.top) + 'px) scale(' + k + ')' }],
+        [{ transform: 'translate(0px, 0px) scale(1)' }, { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + k + ')' }],
         { duration: GLIDE_MS, delay: delay + i * stagger, easing: 'cubic-bezier(.65, 0, .35, 1)', fill: 'forwards' }
       );
     });
@@ -762,10 +780,16 @@
     const r = targets[0].getBoundingClientRect();
     return r.bottom > 0 && r.top < window.innerHeight;
   }
-  window.addEventListener('resize', () => {
-    // a resize mid-glide would land the name on stale coordinates: finish it now
-    if (introOn && gliding) introEl.getAnimations({ subtree: true }).forEach((a) => a.finish());
-  });
+  // a layout change mid-glide (a resize, a rotation, the pinned layout switching on or off) would land the name on
+  // stale coordinates: land it now. Only the finite animations: the caret blinks forever and finish() throws on it,
+  // which used to stop the loop before it reached the glide
+  function landGlide() {
+    if (!introOn || !gliding) return;
+    introEl.getAnimations({ subtree: true }).forEach((a) => {
+      if (a.effect && a.effect.getComputedTiming().endTime !== Infinity) a.finish();
+    });
+  }
+  window.addEventListener('resize', landGlide);
 
   // three lines typed out; then everything but the name leaves and the name travels (and grows)
   // into the hero title
