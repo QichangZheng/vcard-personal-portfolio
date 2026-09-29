@@ -270,6 +270,8 @@
   function restartChapter(ch) {
     if (!drawing || reduced) return;
     drawing.querySelectorAll('.cl-' + ch + ' .fx').forEach((el) => el.getAnimations().forEach((a) => {
+      // the hero's stream starts empty, from its first request; a chapter's loop from its last breath of rest
+      if (ch === 'hero') { a.currentTime = 0; return; }
       const L = a.effect ? a.effect.getComputedTiming().duration : 0;
       if (L > 700) a.currentTime = L - 700;
     }));
