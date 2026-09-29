@@ -70,12 +70,22 @@
         if (on === e.target.classList.contains('run')) return;
         // (while it does not run, its moving parts fade out rather than stand frozen mid-message: site.css)
         e.target.classList.toggle('run', on);
-        if (on) teamMini.svg.querySelectorAll('.fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = FX_ENTRY_MS; }));
+        if (on) teamMini.svg.querySelectorAll('.g-team .fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = FX_ENTRY_MS; }));
         wakeShakes();
       }), { threshold: 0.6 })
         .observe(teamMini.box);
     } else teamMini.box.classList.add('run');
   }
+  // chapters 01-03: each crop runs its chapter's own loop the same way, from the loop's start
+  minis.filter((m) => /^w[123]$/.test(m.box.dataset.hl)).forEach((m) => {
+    if (!('IntersectionObserver' in window)) { m.box.classList.add('run'); return; }
+    new IntersectionObserver((es) => es.forEach((e) => {
+      const on = e.isIntersecting && e.intersectionRatio >= 0.599;
+      if (on === e.target.classList.contains('run')) return;
+      e.target.classList.toggle('run', on);
+      if (on) m.svg.querySelectorAll('.cl-' + m.box.dataset.hl + ' .fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = 0; }));
+    }), { threshold: 0.6 }).observe(m.box);
+  });
   function sizeMiniLabels() {
     minis.forEach((m) => {
       const w = m.svg.getBoundingClientRect().width;
@@ -225,11 +235,21 @@
     window.clearTimeout(fxTimer);
     fxTimer = window.setTimeout(() => {
       if (root.getAttribute('data-scene') === 'w4') {
-        drawing.querySelectorAll('.fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = FX_ENTRY; }));
+        drawing.querySelectorAll('.g-team .fx').forEach((el) => el.getAnimations().forEach((a) => { a.currentTime = FX_ENTRY; }));
       }
       root.classList.remove('fx-reset');
       wakeShakes();
     }, 200);
+  }
+
+  // chapters 01-03 each have a short loop of their own (gen.py). Arriving at one, its loop starts again from its
+  // last moments of rest, so its story begins about as the camera settles rather than somewhere in the middle.
+  function restartChapter(ch) {
+    if (!drawing || reduced) return;
+    drawing.querySelectorAll('.cl-' + ch + ' .fx').forEach((el) => el.getAnimations().forEach((a) => {
+      const L = a.effect ? a.effect.getComputedTiming().duration : 0;
+      if (L > 700) a.currentTime = L - 700;
+    }));
   }
 
   /* ---------- The vibration: a card shakes when it sends and the moment the beam reaches it ---------- */
@@ -269,7 +289,7 @@
       clock() {
         if (!ref || !ref.effect || !svg.contains(ref.effect.target) || ref.playState === 'idle') {
           ref = null;
-          for (const el of svg.querySelectorAll('.fx')) { const a = el.getAnimations()[0]; if (a) { ref = a; break; } }
+          for (const el of svg.querySelectorAll('.g-team .fx')) { const a = el.getAnimations()[0]; if (a) { ref = a; break; } }
         }
         return ref && ref.currentTime != null ? ((ref.currentTime % loop) + loop) % loop : null;
       } });
@@ -347,6 +367,7 @@
     }
     if (!instant && prev) redraw(scene);
     if (prev && scene.dataset.scene === 'w4') restartStory();
+    if (prev && /^w[123]$/.test(scene.dataset.scene)) restartChapter(scene.dataset.scene);
     swapChapter(prev, instant);
   }
 
