@@ -612,9 +612,13 @@
       return h <= room;
     });
   }
-  function setMode() {
+  // anchor: put the current scene back in place afterwards (after a resize, or when the layout switches); the first
+  // call on load does not (the page is where it should be; on a phone, measuring the hero that early could send the
+  // page a screen down: Chrome on iOS, seen with ?debug)
+  function setMode(anchor) {
     const want = fitsPinned();
-    if (want !== pinned) {
+    const switched = want !== pinned;
+    if (switched) {
       landGlide();   // the hero title is about to move
       // switch without animating every layer between the two layouts
       root.classList.add('mode-switch');
@@ -627,7 +631,7 @@
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => root.classList.remove('mode-switch')));
     }
     sizeMiniLabels();
-    if (active) scrollToScene(active);
+    if (active && (anchor || switched)) scrollToScene(active);
     thumbPlaced = false;
     placeThumb();
   }
@@ -642,7 +646,7 @@
     window.clearTimeout(settleTimer);
     window.clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
-      setMode();
+      setMode(true);
       resizing = false;
       requestFrame();
     }, 150);
@@ -760,7 +764,7 @@
         const ref = active && active.querySelector('h1, h2:not(.sr), h3, .big');
         const before = ref ? ref.getBoundingClientRect().top : 0;
         applyLang(l);
-        setMode();
+        setMode(true);
         if (!pinned && ref) window.scrollBy(0, ref.getBoundingClientRect().top - before);
         held = active ? { scene: active, y: window.scrollY } : null;
         frame();
@@ -804,7 +808,7 @@
       lines.forEach(clearFade);
       root.classList.add('drawn', 'settled');
     }
-    setMode();
+    setMode(true);
     requestFrame();
     wakeShakes();
   };
@@ -972,7 +976,7 @@
       const to = Array.from(document.querySelectorAll('#name > ' + (zh ? '.zh' : '.en') + ' .w'));
       // a page that moved behind the curtain anyway (a phone's touch scroll that could not be stopped) goes back to
       // the hero first, so the name still lands on it
-      if (window.scrollY > 2 && active === scenes[0]) window.scrollTo(0, 0);
+      toTop();
       if (!canGlide(to)) {
         introEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, easing: 'ease', fill: 'forwards' }).finished.then(onDone, onDone);
         return;
@@ -1097,9 +1101,14 @@
     const heroMini = minis.find((m) => m.box.dataset.hl === 'hero');
     penEnd = Math.max(sketch(drawing, t0), heroMini ? sketch(heroMini.svg, t0) : 0);
   }
+  function toTop() {
+    if (window.scrollY <= 2 && active === scenes[0]) return;
+    window.scrollTo(0, 0);
+    setScene(scenes[0], true);
+  }
   function introDone() {
     // the intro always hands over to the hero: if anything moved the page while it played, it goes back to the top
-    if (window.scrollY > 2 && active === scenes[0]) window.scrollTo(0, 0);
+    toTop();
     introOn = false;
     setBehind(false);
     root.classList.remove('intro-on', 'intro-out', 'intro-run');
