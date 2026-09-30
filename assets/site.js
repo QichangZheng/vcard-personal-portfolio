@@ -476,40 +476,63 @@
   function clearFade(el) {
     if (el._x) { el.style.opacity = ''; el.style.filter = ''; el.style.transform = ''; el._x = false; }
   }
-  // The flowing layout (phones, touch screens) moves in depth as it scrolls, the way the pinned layout steps from scene
-  // to scene: a block rises out of the distance as it comes up from the bottom of the screen (a little smaller,
-  // lower and fainter, reaching full size and strength about a fifth of the way up), and as it passes under the nav it
-  // keeps coming towards you, fading and softening. It follows the finger (it is computed from the scroll position
-  // each frame, never timed), and uses only transform, opacity and (at the top) a light blur.
-  const smooth = (t) => t * t * (3 - 2 * t);
   function exitFade() {
     if (pinned || reduced) { lines.forEach(clearFade); return; }
-    const vh = window.innerHeight;
     const navBottom = nav.getBoundingClientRect().bottom;
     const fadeEnd = navBottom - 4;
     const fadeStart = navBottom + 40;
-    const riseFrom = vh + 8;              // where a block starts to rise (its top at the bottom edge)
-    const riseTo = vh * 0.8;              // ... and where it has fully arrived
     for (const el of lines) {
       if (el.offsetParent === null) continue;
       const r = el.getBoundingClientRect();
-      if (r.bottom < -40 || r.top > vh + 40 || !el._scene.classList.contains('is-in')) { clearFade(el); continue; }
-      // arriving: measured at the block's top
-      let a = (riseFrom - r.top) / (riseFrom - riseTo);
-      a = a < 0 ? 0 : a > 1 ? 1 : a;
-      // leaving: measured at the block's last line (taller blocks stay sharp while the veil covers their upper lines)
+      if (r.bottom < -40 || r.top > window.innerHeight || !el._scene.classList.contains('is-in')) { clearFade(el); continue; }
+      // measured at the block's last line: taller blocks stay sharp while the veil covers their upper lines
       const c = r.bottom - Math.min(r.height, 48) * 0.5;
       let t = (c - fadeEnd) / (fadeStart - fadeEnd);
       t = t < 0 ? 0 : t > 1 ? 1 : t;
-      if (a >= 1 && t >= 1) { clearFade(el); continue; }
-      const ea = smooth(a);
-      const et = smooth(t);
-      const scale = a < 1 ? 0.95 + 0.05 * ea : 1 + 0.035 * (1 - et);
-      const lift = a < 1 ? (1 - ea) * 26 : 0;
-      el.style.opacity = (ea * et).toFixed(3);
-      el.style.transform = 'translate3d(0,' + lift.toFixed(1) + 'px,0) scale(' + scale.toFixed(4) + ')';
-      el.style.filter = t < 1 ? 'blur(' + ((1 - et) * 3).toFixed(2) + 'px)' : '';
+      if (t >= 1) { clearFade(el); continue; }
+      const e = t * t * (3 - 2 * t);
+      el.style.opacity = e.toFixed(3);
+      el.style.filter = 'blur(' + ((1 - e) * 5).toFixed(2) + 'px)';
       el._x = true;
+    }
+  }
+
+  /* ---------- Touch screens: one swipe, one page ---------- */
+  // Where the scene-by-scene layout cannot pin (a phone: a scene is often taller than the screen), each scene is a
+  // page the browser snaps to (site.css html.snap): one swipe moves one page, never stopping in between; a page taller
+  // than the screen is scrolled through first. While a page slides in, it comes up out of the distance and the one
+  // it replaces moves on towards you and fades, as the pinned layout's scenes do; it follows the finger (computed from
+  // each page's position every frame), transform and opacity only, about the middle of the screen.
+  const coarse = window.matchMedia('(pointer: coarse)');
+  function sceneDepth() {
+    const on = root.classList.contains('snap') && !reduced;
+    const vh = window.innerHeight;
+    for (const sc of scenes) {
+      const l = layerOf(sc);
+      const r = sc.getBoundingClientRect();
+      let scale = 1;
+      let op = 1;
+      if (on && r.bottom > 0 && r.top < vh) {
+        if (r.top > 0.5) {                         // coming up from below
+          const p = Math.min(1, r.top / vh);
+          const e = p * p * (3 - 2 * p);
+          scale = 1 - 0.08 * e;
+          op = 1 - 0.9 * e;
+        } else if (r.bottom < vh - 0.5) {          // leaving above
+          const q = Math.min(1, (vh - r.bottom) / vh);
+          const e = q * q * (3 - 2 * q);
+          scale = 1 + 0.06 * e;
+          op = 1 - 0.95 * e;
+        }
+      }
+      if (scale === 1 && op === 1) {
+        if (l._d) { l.style.transform = ''; l.style.opacity = ''; l.style.transformOrigin = ''; l._d = false; }
+        continue;
+      }
+      l.style.transformOrigin = '50% ' + (vh / 2 - r.top).toFixed(1) + 'px';
+      l.style.transform = 'scale(' + scale.toFixed(4) + ')';
+      l.style.opacity = op.toFixed(3);
+      l._d = true;
     }
   }
 
@@ -520,6 +543,7 @@
     if (resizing) return;
     setScene(currentScene(), false);
     exitFade();
+    sceneDepth();
   }
   function requestFrame() {
     if (!ticking) { ticking = true; window.requestAnimationFrame(frame); }
@@ -648,6 +672,8 @@
       void root.offsetHeight;
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => root.classList.remove('mode-switch')));
     }
+    // touch screens that flow (phones) page from scene to scene
+    root.classList.toggle('snap', !pinned && coarse.matches && !reduced);
     sizeMiniLabels();
     if (active && (anchor || switched)) scrollToScene(active);
     thumbPlaced = false;
