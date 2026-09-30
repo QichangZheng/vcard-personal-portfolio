@@ -209,7 +209,9 @@
   function reveal(scene, animate, baseDelay) {
     if (scene.classList.contains('is-in')) return;
     scene.classList.add('is-in');
-    if (animate) zoomIn(scene, 0.94, baseDelay == null ? 60 : baseDelay, 1000);
+    // (the flowing layout's blocks rise in as they scroll into view: exitFade; the pinned one zooms the whole scene)
+    if (animate && pinned) zoomIn(scene, 0.94, baseDelay == null ? 60 : baseDelay, 1000);
+    if (!pinned) requestFrame();
   }
 
   if ('IntersectionObserver' in window) {
@@ -472,25 +474,41 @@
 
   /* ---------- Flowing layout: text passing under the nav softens and fades ---------- */
   function clearFade(el) {
-    if (el._x) { el.style.opacity = ''; el.style.filter = ''; el._x = false; }
+    if (el._x) { el.style.opacity = ''; el.style.filter = ''; el.style.transform = ''; el._x = false; }
   }
+  // The flowing layout (phones, touch screens) moves in depth as it scrolls, the way the pinned layout steps from scene
+  // to scene: a block rises out of the distance as it comes up from the bottom of the screen (a little smaller,
+  // lower and fainter, reaching full size and strength about a fifth of the way up), and as it passes under the nav it
+  // keeps coming towards you, fading and softening. It follows the finger (it is computed from the scroll position
+  // each frame, never timed), and uses only transform, opacity and (at the top) a light blur.
+  const smooth = (t) => t * t * (3 - 2 * t);
   function exitFade() {
     if (pinned || reduced) { lines.forEach(clearFade); return; }
+    const vh = window.innerHeight;
     const navBottom = nav.getBoundingClientRect().bottom;
     const fadeEnd = navBottom - 4;
     const fadeStart = navBottom + 40;
+    const riseFrom = vh + 8;              // where a block starts to rise (its top at the bottom edge)
+    const riseTo = vh * 0.8;              // ... and where it has fully arrived
     for (const el of lines) {
       if (el.offsetParent === null) continue;
       const r = el.getBoundingClientRect();
-      if (r.bottom < -40 || r.top > window.innerHeight || !el._scene.classList.contains('is-in')) { clearFade(el); continue; }
-      // measured at the block's last line: taller blocks stay sharp while the veil covers their upper lines
+      if (r.bottom < -40 || r.top > vh + 40 || !el._scene.classList.contains('is-in')) { clearFade(el); continue; }
+      // arriving: measured at the block's top
+      let a = (riseFrom - r.top) / (riseFrom - riseTo);
+      a = a < 0 ? 0 : a > 1 ? 1 : a;
+      // leaving: measured at the block's last line (taller blocks stay sharp while the veil covers their upper lines)
       const c = r.bottom - Math.min(r.height, 48) * 0.5;
       let t = (c - fadeEnd) / (fadeStart - fadeEnd);
       t = t < 0 ? 0 : t > 1 ? 1 : t;
-      if (t >= 1) { clearFade(el); continue; }
-      const e = t * t * (3 - 2 * t);
-      el.style.opacity = e.toFixed(3);
-      el.style.filter = 'blur(' + ((1 - e) * 5).toFixed(2) + 'px)';
+      if (a >= 1 && t >= 1) { clearFade(el); continue; }
+      const ea = smooth(a);
+      const et = smooth(t);
+      const scale = a < 1 ? 0.95 + 0.05 * ea : 1 + 0.035 * (1 - et);
+      const lift = a < 1 ? (1 - ea) * 26 : 0;
+      el.style.opacity = (ea * et).toFixed(3);
+      el.style.transform = 'translate3d(0,' + lift.toFixed(1) + 'px,0) scale(' + scale.toFixed(4) + ')';
+      el.style.filter = t < 1 ? 'blur(' + ((1 - et) * 3).toFixed(2) + 'px)' : '';
       el._x = true;
     }
   }

@@ -1231,6 +1231,9 @@ main { position: relative; z-index: 1; }
 
 /* entrance: hidden until the scene arrives (only when JS runs) */
 .js .scene:not(.is-in) .r { opacity: 0; }
+/* the flowing layout scales its blocks from their left edge, where the text starts (site.js exitFade) */
+html:not(.pinned) .scene .r { transform-origin: 0 50%; }
+html:not(.pinned) .scene .mini.r { transform-origin: 50% 50%; }   /* (the drawings run edge to edge: from their middle) */
 
 .hero h1 {
   font-size: clamp(46px, 6.4vw, 88px);
