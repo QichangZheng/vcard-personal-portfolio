@@ -16,7 +16,7 @@
   // viewBox crops of the drawing for narrow screens:
   // [viewBox, smallest label size on screen in px, largest label size in drawing units so labels fit their boxes]
   const CROPS = {
-    hero: ['122 10 784 420', 9, 18],   // Clients (.ph-x) is left out, so the platform can be larger
+    hero: ['122 10 784 760', 9, 18],   // the whole drawing, both panels, as on wide screens (Clients, .ph-x, is left out)
     w1: ['-4 84 480 300', 12, 17],
     w2: ['342 100 468 292', 12, 18],
     w3: ['500 6 556 348', 12, 19],
@@ -61,7 +61,7 @@
       // a crop keeps only its own loop (the others lie outside its view, and each would cost a few hundred animations)
       const hl = s.dataset.scene;
       svg.querySelectorAll('.cl').forEach((g) => { if (!g.classList.contains('cl-' + hl)) g.remove(); });
-      if (hl !== 'w4') svg.querySelectorAll('.g-team .fx').forEach((n) => n.remove());
+      if (hl !== 'w4' && hl !== 'hero') svg.querySelectorAll('.g-team .fx').forEach((n) => n.remove());
       box.appendChild(svg);
       const col = s.querySelector('.col');
       // chapters: the drawing sits between the subtitle and the points, so the scene starts at its heading

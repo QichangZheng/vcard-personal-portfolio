@@ -420,7 +420,7 @@ html:not(.js) .backdrop { display: none; }
 }
 html[data-scene="hero"] .backdrop .g-team .fx,
 html[data-scene="w4"] .backdrop .g-team .fx,
-.mini[data-hl="w4"].run .g-team .fx { animation-play-state: running; }
+.mini[data-hl="w4"].run .g-team .fx, .mini[data-hl="hero"].run .g-team .fx { animation-play-state: running; }
 /* chapters 01-03: each has a short loop of its own (gen.py, "chapters 01-03"), shown and running only while its
    chapter is on screen, on wide screens and in the chapter's phone crop; the hero has one of its own too, a request's
    journey through the whole platform */
@@ -455,7 +455,7 @@ html[data-scene="w3"] .backdrop .cl-w3 .fx, html[data-scene="hero"] .backdrop .c
 .diagram .led.off { fill: #fff; stroke: #b4b5bb; stroke-width: 1.25; }
 html[data-scene="hero"] .backdrop .led:not(.off),
 html[data-scene="w4"] .backdrop .led:not(.off),
-.mini[data-hl="w4"] .led:not(.off) { fill: var(--accent); }
+.mini[data-hl="w4"] .led:not(.off), .mini[data-hl="hero"] .led:not(.off) { fill: var(--accent); }
 /* dimmed with the team in chapters 01-03, where the loop is paused: a light never stays frozen mid-blink */
 html[data-scene^="w"]:not([data-scene="w4"]) .backdrop .led { fill-opacity: 1 !important; }
 .diagram .slot.acct.off { stroke-dasharray: 3 3; }
@@ -481,8 +481,10 @@ html.js.fx-reset .backdrop .diagram .live { opacity: 0; transition: opacity .2s 
 /* the phone crop stops when less than 60 % of it is on screen: its moving parts fade out rather than stand frozen
    mid-message (a still comet in the control plane would read as a progress bar), and its lights are held full; it
    starts again from the story's start (site.js) */
-.mini[data-hl="w4"]:not(.run) .live { opacity: 0; transition: opacity .25s var(--ease); }
-.mini[data-hl="w4"]:not(.run) .led { fill-opacity: 1 !important; }
+.mini[data-hl="w4"]:not(.run) .live, .mini[data-hl="hero"]:not(.run) .live { opacity: 0; transition: opacity .25s var(--ease); }
+/* the phone hero shows the whole drawing, as the wide hero does: the Agent Team's loop runs there too, quieter */
+.mini[data-hl="hero"].run .live { opacity: .55; }
+.mini[data-hl="w4"]:not(.run) .led, .mini[data-hl="hero"]:not(.run) .led { fill-opacity: 1 !important; }
 .diagram .fx { animation-duration: 25.2s; }
 .js.settled .diagram .fx-wave-a1 { animation-name: fx-wave-a1; }
 @keyframes fx-wave-a1 { 0% { x: 326px; y: 658px; width: 124px; height: 32px; rx: 9px; stroke-opacity: 0; fill-opacity: 0; animation-timing-function: linear; } 1.865% { x: 326px; y: 658px; width: 124px; height: 32px; rx: 9px; stroke-opacity: 0; fill-opacity: 0; animation-timing-function: linear; } 1.984% { x: 326px; y: 658px; width: 124px; height: 32px; rx: 9px; stroke-opacity: 0.8; fill-opacity: 0.112; animation-timing-function: cubic-bezier(0, 0, .2, 1); } 5.556% { x: 317px; y: 652px; width: 142px; height: 44px; rx: 15px; stroke-opacity: 0; fill-opacity: 0; animation-timing-function: linear; } 5.675% { x: 326px; y: 658px; width: 124px; height: 32px; rx: 9px; stroke-opacity: 0; fill-opacity: 0; animation-timing-function: linear; } 96.472% { x: 326px; y: 658px; width: 124px; height: 32px; rx: 9px; stroke-opacity: 0; fill-opacity: 0; animation-timing-function: linear; } 96.591% { x: 326px; y: 658px; width: 124px; height: 32px; rx: 9px; stroke-opacity: 0.525; fill-opacity: 0.073; animation-timing-function: cubic-bezier(0, 0, .2, 1); } 99.567% { x: 318.8px; y: 653.2px; width: 138.4px; height: 41.6px; rx: 13.8px; stroke-opacity: 0; fill-opacity: 0; animation-timing-function: linear; } 99.687% { x: 326px; y: 658px; width: 124px; height: 32px; rx: 9px; stroke-opacity: 0; fill-opacity: 0; animation-timing-function: linear; } 100% { x: 326px; y: 658px; width: 124px; height: 32px; rx: 9px; stroke-opacity: 0; fill-opacity: 0; animation-timing-function: linear; } }
@@ -1444,7 +1446,7 @@ main { transition: opacity .3s var(--ease); }
   .col, .about .col, .exp .col, .edu .col { max-width: 36rem; }
   .backdrop { display: none; }
   .hero .layer { padding-top: 88px; padding-bottom: 8vh; }
-  .js .hero-mini { display: block; aspect-ratio: 784 / 420; max-height: max(0px, calc(100svh - 520px)); margin: 0 0 28px; }
+  .js .hero-mini { display: block; aspect-ratio: 784 / 760; max-height: max(160px, calc(100svh - 470px)); margin: 0 0 24px; }
   .scene:not(.hero) .layer { min-height: 0; padding: 104px var(--gutter) 56px; }
   .scene.contact:not(.hero) .layer { min-height: 100vh; min-height: 100svh; align-content: center; }
   .exp .col.cv { grid-template-columns: 1fr; row-gap: 64px; }
@@ -1467,7 +1469,8 @@ main { transition: opacity .3s var(--ease); }
 @media (max-width: 720px) {
   .hero .layer { padding-bottom: 5vh; }
   .scene:not(.hero) .layer { padding-top: 80px; padding-bottom: 32px; }
-  .js .hero-mini { width: auto; margin: 0 calc(-1 * var(--gutter)) 24px; }
+  .js .hero-mini { width: calc(100% + 2 * var(--gutter)); margin: 0 calc(-1 * var(--gutter)) 24px; }   /* (a short screen caps its
+     height: the drawing then sits in the middle of the full-width box) */
   .js .mini:not(.hero-mini), .js .mini[data-hl="w4"] { width: auto; margin-left: calc(-1 * var(--gutter)); margin-right: calc(-1 * var(--gutter)); }
 }
 /* touch: links big enough to hit with a thumb, without moving anything */
