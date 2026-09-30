@@ -1200,7 +1200,6 @@ html.js.fx-reset .backdrop .diagram .live { opacity: 0; transition: opacity .2s 
 .mini .lbl { font-size: var(--lbl, 15px); }
 .mini .lbl:is(.cap, .end) { font-size: calc(var(--lbl, 15px) * .92); }
 .mini:not(.hero-mini) .grp { opacity: .12; }
-.hero-mini .ph-x { display: none; }
 .mini[data-hl="w1"] .g-nac, .mini[data-hl="w2"] .g-sbx, .mini[data-hl="w3"] .g-fw, .mini[data-hl="w4"] .g-team { opacity: 1; }
 .mini[data-hl="w1"] .g-nac :is(.n, .e), .mini[data-hl="w2"] .g-sbx :is(.n, .e),
 .mini[data-hl="w3"] .g-fw :is(.n, .e), .mini[data-hl="w4"] .g-team :is(.n, .e) { stroke: var(--accent); }
@@ -1449,7 +1448,7 @@ main { transition: opacity .3s var(--ease); }
   .col, .about .col, .exp .col, .edu .col { max-width: 36rem; }
   .backdrop { display: none; }
   .hero .layer { padding-top: 88px; padding-bottom: 8vh; }
-  .js .hero-mini { display: block; aspect-ratio: 784 / 760; max-height: max(160px, calc(100svh - 470px)); margin: 0 0 24px; }
+  .js .hero-mini { display: block; aspect-ratio: 916 / 764; max-height: max(160px, calc(100svh - 470px)); margin: 0 0 24px; }
   .scene:not(.hero) .layer { min-height: 0; padding: 104px var(--gutter) 56px; }
   .scene.contact:not(.hero) .layer { min-height: 100vh; min-height: 100svh; align-content: center; }
   .exp .col.cv { grid-template-columns: 1fr; row-gap: 64px; }
@@ -1483,7 +1482,7 @@ html.paged, html.paged body { overflow: hidden; overscroll-behavior: none; }
 html.paged .scene { height: 100vh; height: 100svh; }
 html.paged .layer {
   position: fixed; inset: 0; z-index: 2;
-  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  overflow-y: auto; overscroll-behavior: none; -webkit-overflow-scrolling: touch;
   align-content: safe center;
   opacity: 0; pointer-events: none;
   transform-origin: 50% 50%;

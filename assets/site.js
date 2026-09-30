@@ -49,8 +49,8 @@
   // viewBox crops of the drawing for narrow screens:
   // [viewBox, smallest label size on screen in px, largest label size in drawing units so labels fit their boxes]
   const CROPS = {
-    hero: ['122 10 784 760', 9, 18],   // the whole drawing, both panels, as on wide screens (Clients, .ph-x, is left out)
-    w1: ['-4 84 480 300', 12, 17],
+    hero: ['-4 8 916 764', 9, 18],     // the whole drawing, both panels and the client the requests come from
+    w1: ['-8 68 502 314', 12, 17],     // (the platform's panel whole at the top, not cut through its frame)
     w2: ['342 100 468 292', 12, 18],
     w3: ['500 6 556 348', 12, 19],
     w4: ['116 452 744 322.5', 12, 18],   // the whole team panel: the pool and all three projects (every agent takes part)
@@ -540,20 +540,32 @@
     swipe = { x: t.clientX, y: t.clientY, t: window.performance.now(), l, top: l.scrollTop,
       atTop: l.scrollTop <= 1, atEnd: l.scrollTop + l.clientHeight >= l.scrollHeight - 1 };
   }, { passive: true });
-  window.addEventListener('touchend', (ev) => {
+  window.addEventListener('touchmove', (ev) => {
+    if (swipe && ev.touches.length === 1) { swipe.lx = ev.touches[0].clientX; swipe.ly = ev.touches[0].clientY; }
+  }, { passive: true });
+  // a swipe ends with touchend, or (on iOS, when the browser takes the gesture over to scroll or bounce a scrollable
+  // scene) with touchcancel: then its last position decides
+  function endSwipe(x, y) {
     const g = swipe;
     swipe = null;
-    if (!g || !paged || introOn) return;
-    const t = ev.changedTouches[0];
-    const dy = g.y - t.clientY;
-    if (Math.abs(g.x - t.clientX) > Math.abs(dy)) return;       // sideways: not a page turn
-    if (Math.abs(g.l.scrollTop - g.top) > 2) return;             // it scrolled the scene's own content
+    if (!g || !paged || introOn || x == null) return;
+    const dy = g.y - y;
+    if (Math.abs(g.x - x) > Math.abs(dy)) return;                // sideways: not a page turn
+    // it scrolled the scene's own content (measured within the scrollable range: on iOS a swipe at either end of a
+    // scrollable scene bounces it past its ends, which is not scrolling it)
+    const max = g.l.scrollHeight - g.l.clientHeight;
+    const within = (v) => Math.min(Math.max(v, 0), max);
+    if (Math.abs(within(g.l.scrollTop) - within(g.top)) > 2) return;
     const quick = window.performance.now() - g.t < 280;
     if (!(Math.abs(dy) > 48 || (quick && Math.abs(dy) > 22))) return;
     if (dy > 0 && g.atEnd) step(1);
     else if (dy < 0 && g.atTop) step(-1);
+  }
+  window.addEventListener('touchend', (ev) => {
+    const t = ev.changedTouches[0];
+    endSwipe(t ? t.clientX : null, t ? t.clientY : null);
   }, { passive: true });
-  window.addEventListener('touchcancel', () => { swipe = null; }, { passive: true });
+  window.addEventListener('touchcancel', () => { if (swipe) endSwipe(swipe.lx, swipe.ly); }, { passive: true });
 
   /* ---------- Pinned layout: one gesture or key press moves exactly one scene ---------- */
   let lastKeyStep = 0;
