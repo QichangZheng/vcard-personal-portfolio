@@ -50,7 +50,7 @@
   // [viewBox, smallest label size on screen in px, largest label size in drawing units so labels fit their boxes]
   const CROPS = {
     hero: ['-4 8 916 764', 9, 18],     // the whole drawing, both panels and the client the requests come from
-    w1: ['-8 68 502 314', 12, 17],     // (the platform's panel whole at the top, not cut through its frame)
+    w1: ['-8 40 668 417.5', 12, 17],   // (with the sandboxes faded beside it, as the other chapters show their neighbours)
     w2: ['342 100 468 292', 12, 18],
     w3: ['500 6 556 348', 12, 19],
     w4: ['116 452 744 322.5', 12, 18],   // the whole team panel: the pool and all three projects (every agent takes part)
