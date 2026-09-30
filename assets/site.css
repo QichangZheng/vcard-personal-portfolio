@@ -1476,21 +1476,28 @@ main { transition: opacity .3s var(--ease); }
      height: the drawing then sits in the middle of the full-width box) */
   .js .mini:not(.hero-mini), .js .mini[data-hl="w4"] { width: auto; margin-left: calc(-1 * var(--gutter)); margin-right: calc(-1 * var(--gutter)); }
 }
-/* touch screens that flow (phones): one swipe, one page. Each scene is a page the browser snaps to and never passes
-   by in one swipe; a page taller than the screen is scrolled through first (site.js sceneDepth adds the depth) */
-html.snap { scroll-snap-type: y mandatory; }
-html.snap .scene { scroll-snap-align: start; scroll-snap-stop: always; }
-html.snap .scene .layer { min-height: 100svh; align-content: center; }
-html.snap .scene:not(.hero) .layer { padding-top: 76px; padding-bottom: 28px; }
+/* touch screens that flow (phones): one swipe, one page (site.js 'One swipe, one page'). The scenes lie on the
+   screen one on top of another, as in the pinned layout; the current one shows, and a scene taller than the screen
+   scrolls inside its own layer. The document itself does not scroll by touch. */
+html.paged, html.paged body { overflow: hidden; overscroll-behavior: none; }
+html.paged .scene { height: 100vh; height: 100svh; }
+html.paged .layer {
+  position: fixed; inset: 0; z-index: 2;
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  align-content: safe center;
+  opacity: 0; pointer-events: none;
+  transform-origin: 50% 50%;
+}
+html.paged .scene.is-active .layer { opacity: 1; }
+html.paged .scene.is-live .layer { pointer-events: auto; }
 @media (max-width: 720px) {
   /* a page should fit a phone's screen: the chapters are set a little tighter, the drawings capped in height */
-  html.snap .work ul { margin-top: 18px; gap: 8px; }
-  html.snap .work li { font-size: 15px; line-height: 1.55; }
-  html.snap .work .line { margin-top: 8px; }
-  html.snap .js .mini:not(.hero-mini), html.snap .mini:not(.hero-mini) { margin-top: 18px; margin-bottom: 0; max-height: 27svh; }
-  html.snap .exp .col.cv { row-gap: 40px; }
-  /* Experience and Education together are taller than a phone: Education is a page of its own */
-  html.snap .exp .col.cv > .block + .block { scroll-snap-align: start; scroll-snap-stop: always; scroll-margin-top: 76px; }
+  html.paged .scene:not(.hero) .layer { padding-top: 76px; padding-bottom: 28px; }
+  html.paged .work ul { margin-top: 18px; gap: 8px; }
+  html.paged .work li { font-size: 15px; line-height: 1.55; }
+  html.paged .work .line { margin-top: 8px; }
+  html.paged .mini:not(.hero-mini) { margin-top: 18px; margin-bottom: 0; max-height: 27svh; }
+  html.paged .exp .col.cv { row-gap: 40px; }
 }
 /* touch: links big enough to hit with a thumb, without moving anything */
 @media (pointer: coarse) {

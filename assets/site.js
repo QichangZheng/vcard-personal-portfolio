@@ -59,6 +59,7 @@
 
   let reduced = rmQuery.matches;
   let pinned = root.classList.contains('pinned');
+  let paged = false;                    // touch screens that flow: one swipe, one scene (see 'One swipe, one page')
   let active = null;
 
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -109,15 +110,24 @@
   // time it comes into view the story opens at its start, as chapter 04 does on wider screens (restartStory).
   const teamMini = minis.find((m) => m.box.dataset.hl === 'w4');
   const FX_ENTRY_MS = drawing ? parseFloat(drawing.getAttribute('data-fx-entry') || '0') * 1000 : 0;
+  // a crop runs its loop, from its start, while it is on screen (while it does not run, its moving parts fade out
+  // rather than stand frozen mid-message: site.css)
+  function runMini(m, on) {
+    if (on === m.box.classList.contains('run')) return;
+    m.box.classList.toggle('run', on);
+    if (on) {
+      if (m.box.dataset.hl === 'w4') seekLoop(m.svg, '.g-team', FX_ENTRY_MS);
+      else seekLoop(m.svg, '.cl-' + m.box.dataset.hl, 0);
+    }
+    wakeShakes();
+  }
+  // (the paged layout runs the crop of the current scene instead: its scenes all lie on the screen, one on top)
+  function runMinisOf(scene) { minis.forEach((m) => runMini(m, m.box.closest('.scene') === scene)); }
   if (teamMini) {
     if ('IntersectionObserver' in window) {
       new IntersectionObserver((es) => es.forEach((e) => {
-        const on = e.isIntersecting && e.intersectionRatio >= 0.599;
-        if (on === e.target.classList.contains('run')) return;
-        // (while it does not run, its moving parts fade out rather than stand frozen mid-message: site.css)
-        e.target.classList.toggle('run', on);
-        if (on) seekLoop(teamMini.svg, '.g-team', FX_ENTRY_MS);
-        wakeShakes();
+        if (paged) return;
+        runMini(teamMini, e.isIntersecting && e.intersectionRatio >= 0.599);
       }), { threshold: 0.6 })
         .observe(teamMini.box);
     } else teamMini.box.classList.add('run');
@@ -126,10 +136,8 @@
   minis.filter((m) => /^(w[123]|hero)$/.test(m.box.dataset.hl)).forEach((m) => {
     if (!('IntersectionObserver' in window)) { m.box.classList.add('run'); return; }
     new IntersectionObserver((es) => es.forEach((e) => {
-      const on = e.isIntersecting && e.intersectionRatio >= 0.599;
-      if (on === e.target.classList.contains('run')) return;
-      e.target.classList.toggle('run', on);
-      if (on) seekLoop(m.svg, '.cl-' + m.box.dataset.hl, 0);
+      if (paged) return;
+      runMini(m, e.isIntersecting && e.intersectionRatio >= 0.599);
     }), { threshold: 0.6 }).observe(m.box);
   });
   function sizeMiniLabels() {
@@ -433,7 +441,13 @@
       else a.removeAttribute('aria-current');
     });
     placeThumb();
-    if (pinned) {
+    if (pinned || paged) {
+      if (paged) {
+        // arriving from below, a page opens at its top; going back up, at its bottom (where the visitor left it)
+        const l = layerOf(scene);
+        l.scrollTop = dir === 'up' ? l.scrollHeight : 0;
+        runMinisOf(scene);
+      }
       if (prev) {
         if (!instant) zoomOut(prev, OUT[dir]); // before the class change: it must start from what is on screen
         prev.classList.remove('is-active', 'is-live');
@@ -477,7 +491,7 @@
     if (el._x) { el.style.opacity = ''; el.style.filter = ''; el.style.transform = ''; el._x = false; }
   }
   function exitFade() {
-    if (pinned || reduced) { lines.forEach(clearFade); return; }
+    if (pinned || paged || reduced) { lines.forEach(clearFade); return; }
     const navBottom = nav.getBoundingClientRect().bottom;
     const fadeEnd = navBottom - 4;
     const fadeStart = navBottom + 40;
@@ -497,45 +511,6 @@
     }
   }
 
-  /* ---------- Touch screens: one swipe, one page ---------- */
-  // Where the scene-by-scene layout cannot pin (a phone: a scene is often taller than the screen), each scene is a
-  // page the browser snaps to (site.css html.snap): one swipe moves one page, never stopping in between; a page taller
-  // than the screen is scrolled through first. While a page slides in, it comes up out of the distance and the one
-  // it replaces moves on towards you and fades, as the pinned layout's scenes do; it follows the finger (computed from
-  // each page's position every frame), transform and opacity only, about the middle of the screen.
-  const coarse = window.matchMedia('(pointer: coarse)');
-  function sceneDepth() {
-    const on = root.classList.contains('snap') && !reduced;
-    const vh = window.innerHeight;
-    for (const sc of scenes) {
-      const l = layerOf(sc);
-      const r = sc.getBoundingClientRect();
-      let scale = 1;
-      let op = 1;
-      if (on && r.bottom > 0 && r.top < vh) {
-        if (r.top > 0.5) {                         // coming up from below
-          const p = Math.min(1, r.top / vh);
-          const e = p * p * (3 - 2 * p);
-          scale = 1 - 0.08 * e;
-          op = 1 - 0.9 * e;
-        } else if (r.bottom < vh - 0.5) {          // leaving above
-          const q = Math.min(1, (vh - r.bottom) / vh);
-          const e = q * q * (3 - 2 * q);
-          scale = 1 + 0.06 * e;
-          op = 1 - 0.95 * e;
-        }
-      }
-      if (scale === 1 && op === 1) {
-        if (l._d) { l.style.transform = ''; l.style.opacity = ''; l.style.transformOrigin = ''; l._d = false; }
-        continue;
-      }
-      l.style.transformOrigin = '50% ' + (vh / 2 - r.top).toFixed(1) + 'px';
-      l.style.transform = 'scale(' + scale.toFixed(4) + ')';
-      l.style.opacity = op.toFixed(3);
-      l._d = true;
-    }
-  }
-
   let ticking = false;
   let resizing = false;
   function frame() {
@@ -543,12 +518,42 @@
     if (resizing) return;
     setScene(currentScene(), false);
     exitFade();
-    sceneDepth();
   }
   function requestFrame() {
     if (!ticking) { ticking = true; window.requestAnimationFrame(frame); }
   }
   window.addEventListener('scroll', requestFrame, { passive: true });
+
+  /* ---------- Touch screens: one swipe, one page ---------- */
+  // Where the pinned layout cannot be (a phone: narrow, and a scene is often taller than the screen) a touch screen
+  // still moves scene by scene, as the pinned layout does with a wheel: the scenes lie on the screen one on top of
+  // another (html.paged), a swipe steps to the next or the previous one with the same depth zoom, and a scene taller
+  // than the screen is scrolled through first (it scrolls inside its own layer; only a swipe that starts at its end
+  // moves on). It does not rely on the browser's scroll snapping, which some phones ignore.
+  const coarse = window.matchMedia('(pointer: coarse)');
+  let swipe = null;
+  window.addEventListener('touchstart', (ev) => {
+    swipe = null;
+    if (!paged || introOn || ev.touches.length !== 1 || !active) return;
+    const l = layerOf(active);
+    const t = ev.touches[0];
+    swipe = { x: t.clientX, y: t.clientY, t: window.performance.now(), l, top: l.scrollTop,
+      atTop: l.scrollTop <= 1, atEnd: l.scrollTop + l.clientHeight >= l.scrollHeight - 1 };
+  }, { passive: true });
+  window.addEventListener('touchend', (ev) => {
+    const g = swipe;
+    swipe = null;
+    if (!g || !paged || introOn) return;
+    const t = ev.changedTouches[0];
+    const dy = g.y - t.clientY;
+    if (Math.abs(g.x - t.clientX) > Math.abs(dy)) return;       // sideways: not a page turn
+    if (Math.abs(g.l.scrollTop - g.top) > 2) return;             // it scrolled the scene's own content
+    const quick = window.performance.now() - g.t < 280;
+    if (!(Math.abs(dy) > 48 || (quick && Math.abs(dy) > 22))) return;
+    if (dy > 0 && g.atEnd) step(1);
+    else if (dy < 0 && g.atTop) step(-1);
+  }, { passive: true });
+  window.addEventListener('touchcancel', () => { swipe = null; }, { passive: true });
 
   /* ---------- Pinned layout: one gesture or key press moves exactly one scene ---------- */
   let lastKeyStep = 0;
@@ -659,21 +664,23 @@
   // page a screen down: Chrome on iOS, seen with ?debug)
   function setMode(anchor) {
     const want = fitsPinned();
-    const switched = want !== pinned;
+    const wantPaged = !want && !reduced && coarse.matches && window.innerWidth < 1024;
+    const switched = want !== pinned || wantPaged !== paged;
     if (switched) {
       landGlide();   // the hero title is about to move
       // switch without animating every layer between the two layouts
       root.classList.add('mode-switch');
       pinned = want;
+      paged = wantPaged;
       root.classList.toggle('pinned', pinned);
+      root.classList.toggle('paged', paged);
       scenes.forEach((s) => { s.classList.remove('is-active', 'is-live'); layerOf(s).getAnimations().forEach((a) => a.cancel()); });
-      if (pinned) scenes.forEach((s) => s.classList.add('is-in'));
-      if (active && pinned) active.classList.add('is-active', 'is-live');
+      if (pinned || paged) scenes.forEach((s) => s.classList.add('is-in'));
+      if (active && (pinned || paged)) active.classList.add('is-active', 'is-live');
+      if (paged) runMinisOf(active);
       void root.offsetHeight;
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => root.classList.remove('mode-switch')));
     }
-    // touch screens that flow (phones) page from scene to scene
-    root.classList.toggle('snap', !pinned && coarse.matches && !reduced);
     sizeMiniLabels();
     if (active && (anchor || switched)) scrollToScene(active);
     thumbPlaced = false;
@@ -734,18 +741,19 @@
       history.pushState(null, '', url);
     }
     const target = document.getElementById(id);
+    const stacked = pinned || paged;
     const jump = () => {
       scrollToScene(scene);
-      if (!pinned && target && target !== scene && !target.contains(scene)) {
+      if (!stacked && target && target !== scene && !target.contains(scene)) {
         window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - 110, behavior: 'instant' });
         held = { scene, y: window.scrollY };
       }
-      if (!pinned) reveal(scene, false);
-      setScene(scene, !pinned);
+      if (!stacked) reveal(scene, false);
+      setScene(scene, !stacked);
       exitFade();
     };
-    // pinned: the scene change is itself the transition
-    if (pinned || scene === active) jump();
+    // pinned or paged: the scene change is itself the transition
+    if (stacked || scene === active) jump();
     else crossfade(jump);
     scene.setAttribute('tabindex', '-1');
     scene.focus({ preventScroll: true });
