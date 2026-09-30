@@ -1363,6 +1363,10 @@ html.intro-on .intro {
 }
 .intro .curtain { position: absolute; inset: 0; background: var(--bg); }
 #name .w { display: inline-block; }   /* the same box as the typed name words, so the hand-over lands exactly */
+/* while the intro plays the page behind it cannot be scrolled: a swipe or a flick to skip it (a touch scroll that has
+   already started cannot be cancelled on some phones) must not leave the page further down when the intro lifts */
+html.intro-on { overflow: hidden; }
+html.intro-on .intro { touch-action: none; overscroll-behavior: contain; }
 html.intro-on .hero h1 { visibility: hidden; }
 html.intro-on :is(.hero .lede, .hero .role, .hero-mini, .nav) { opacity: 0; }
 html.intro-on .nav { pointer-events: none; visibility: hidden; }

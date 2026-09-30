@@ -505,7 +505,7 @@
     if (!pinned || ev.ctrlKey || Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) return;
     ev.preventDefault();
     // the intro owns the wheel while it plays, and the rest of a flick that skipped it is not a new gesture
-    if (introOn || window.performance.now() - introWheel < 200) {
+    if (introOn || window.performance.now() - introWheel < 450) {   // (a flick's tail can pause on a busy frame)
       introWheel = window.performance.now();
       if (introOn && introNext) introNext();
       return;
@@ -786,7 +786,7 @@
   function introInput(ev) {
     if (!introOn) {
       // the rest of a flick that skipped the intro is not a new gesture
-      if (ev.type === 'wheel' && window.performance.now() - introWheel < 200) {
+      if (ev.type === 'wheel' && window.performance.now() - introWheel < 450) {
         introWheel = window.performance.now();
         if (ev.cancelable) ev.preventDefault();
         ev.stopImmediatePropagation();
@@ -937,6 +937,9 @@
       out.forEach((el) => el.animate([{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(4px)' }], { duration: 420, easing: 'ease-out', fill: 'forwards' }));
       const from = Array.from(rows[0].querySelectorAll('.w'));
       const to = Array.from(document.querySelectorAll('#name > ' + (zh ? '.zh' : '.en') + ' .w'));
+      // a page that moved behind the curtain anyway (a phone's touch scroll that could not be stopped) goes back to
+      // the hero first, so the name still lands on it
+      if (window.scrollY > 2 && active === scenes[0]) window.scrollTo(0, 0);
       if (!canGlide(to)) {
         introEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, easing: 'ease', fill: 'forwards' }).finished.then(onDone, onDone);
         return;
@@ -1062,6 +1065,8 @@
     penEnd = Math.max(sketch(drawing, t0), heroMini ? sketch(heroMini.svg, t0) : 0);
   }
   function introDone() {
+    // the intro always hands over to the hero: if anything moved the page while it played, it goes back to the top
+    if (window.scrollY > 2 && active === scenes[0]) window.scrollTo(0, 0);
     introOn = false;
     setBehind(false);
     root.classList.remove('intro-on', 'intro-out', 'intro-run');
