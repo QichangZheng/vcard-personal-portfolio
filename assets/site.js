@@ -1,4 +1,37 @@
 (() => {
+  /* ---------- ?debug: an on-screen log of what moves the page (for chasing a jump seen only on a phone) ---------- */
+  if (/[?&]debug\b/.test(window.location.search)) {
+    const t0 = window.performance.now();
+    const lines = [];
+    const box = document.createElement('pre');
+    box.style.cssText = 'position:fixed;left:6px;right:6px;bottom:6px;z-index:9999;max-height:46vh;overflow:auto;margin:0;padding:8px;' +
+      'font:10px/1.35 ui-monospace,Menlo,monospace;color:#fff;background:rgba(0,0,0,.78);border-radius:10px;white-space:pre-wrap;pointer-events:auto';
+    const scene = () => document.documentElement.dataset.scene || '';
+    const cls = () => document.documentElement.className.replace(/\bjs\b|\bpinned\b/g, '').trim().replace(/\s+/g, ',');
+    const log = (what) => {
+      lines.push(`${String(Math.round(window.performance.now() - t0)).padStart(5)} y${Math.round(window.scrollY)} ${window.innerWidth}x${window.innerHeight} ${scene()} [${cls()}] ${what}`);
+      if (lines.length > 80) lines.shift();
+      box.textContent = lines.join('\n');
+      box.scrollTop = box.scrollHeight;
+    };
+    const where = () => { const st = (new Error().stack || '').split('\n').slice(2, 4).map((l) => l.trim().replace(/^at /, '').replace(/https?:\/\/[^/]+/, '')).join(' < '); return st; };
+    const origScrollTo = window.scrollTo.bind(window);
+    window.scrollTo = function (...a) { log('scrollTo(' + JSON.stringify(a[0] && a[0].top !== undefined ? a[0].top : a[1]) + ') ' + where()); return origScrollTo(...a); };
+    const origSIV = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (...a) { log('scrollIntoView ' + (this.id || this.className) + ' ' + where()); return origSIV.apply(this, a); };
+    const origFocus = HTMLElement.prototype.focus;
+    HTMLElement.prototype.focus = function (...a) { log('focus ' + (this.id || this.tagName) + ' ' + JSON.stringify(a[0] || {})); return origFocus.apply(this, a); };
+    let lastY = -1;
+    window.addEventListener('scroll', () => { const y = Math.round(window.scrollY); if (Math.abs(y - lastY) >= 20 || y === 0) { log('scroll'); lastY = y; } }, { passive: true, capture: true });
+    ['resize', 'orientationchange', 'popstate', 'hashchange', 'pageshow', 'load', 'touchstart', 'touchend', 'focusin'].forEach((t) =>
+      window.addEventListener(t, (e) => log(t + (t === 'pageshow' ? ' persisted=' + e.persisted : '') + (t === 'focusin' ? ' ' + (e.target.id || e.target.tagName) : '')), { passive: true, capture: true }));
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', () => log('vv ' + Math.round(window.visualViewport.height)));
+    new MutationObserver(() => log('class')).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-scene'] });
+    const nav = window.performance.getEntriesByType && window.performance.getEntriesByType('navigation')[0];
+    log('start nav=' + (nav && nav.type) + ' ua=' + navigator.userAgent.replace(/.*\) /, '').slice(0, 60) + ' hash=' + window.location.hash);
+    document.addEventListener('DOMContentLoaded', () => document.body.appendChild(box));
+    if (document.body) document.body.appendChild(box);
+  }
   const root = document.documentElement;
   const nav = document.getElementById('nav');
   const menu = nav.querySelector('.menu');
