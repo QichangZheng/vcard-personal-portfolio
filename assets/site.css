@@ -1489,6 +1489,18 @@ html.paged .layer {
 }
 html.paged .scene.is-active .layer { opacity: 1; }
 html.paged .scene.is-live .layer { pointer-events: auto; }
+/* the work chapters' drawing is one camera over the whole drawing (site.js 'one drawing through the work chapters');
+   each chapter's own crop only holds its place */
+.mini.pcam { display: none; }
+html.paged .mini.pcam {
+  display: block; position: fixed; left: 0; top: 0; z-index: 3; width: 0; height: 0;
+  margin: 0 !important; max-height: none !important; aspect-ratio: auto !important;
+  opacity: 0; pointer-events: none; overflow: hidden;
+  transition: opacity .45s var(--ease);
+}
+html.paged .mini.pcam.on { opacity: 1; transition: opacity .6s var(--ease) .25s; }
+html.paged .mini.pcam .diagram { width: 100%; height: 100%; }
+html.paged .scene .mini:not(.hero-mini) { visibility: hidden; }
 @media (max-width: 720px) {
   /* a page should fit a phone's screen: the chapters are set a little tighter, the drawings capped in height */
   html.paged .scene:not(.hero) .layer { padding-top: 76px; padding-bottom: 28px; }

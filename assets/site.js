@@ -105,6 +105,18 @@
       minis.push({ box, svg, width: parseFloat(crop[0].split(' ')[2]), px: crop[1], cap: crop[2] });
     });
   }
+  // the paged layout (phones) shows the work chapters' drawing as one drawing that runs through them, as the wide
+  // backdrop does: a camera over the whole drawing that pans and zooms from one chapter's part to the next while
+  // the text changes (see 'Paged layout: one drawing through the work chapters')
+  let pcam = null;
+  if (drawing) {
+    const box = document.createElement('div');
+    box.className = 'mini pcam';
+    box.setAttribute('aria-hidden', 'true');
+    box.appendChild(drawing.cloneNode(true));
+    document.body.appendChild(box);
+    pcam = { box, svg: box.firstChild, vb: null, hl: null, raf: 0, shown: false };
+  }
   // the chapter-04 crop runs its loop while most of it is on screen (not while its chapter is current: on phones the
   // chapter changes when its top passes 30% of the screen, so the crop can be in view under another chapter). Each
   // time it comes into view the story opens at its start, as chapter 04 does on wider screens (restartStory).
@@ -122,7 +134,9 @@
     wakeShakes();
   }
   // (the paged layout runs the crop of the current scene instead: its scenes all lie on the screen, one on top)
-  function runMinisOf(scene) { minis.forEach((m) => runMini(m, m.box.closest('.scene') === scene)); }
+  function runMinisOf(scene) {
+    minis.forEach((m) => runMini(m, m.box.closest('.scene') === scene && !(paged && pcam && /^w[1-4]$/.test(m.box.dataset.hl))));
+  }
   if (teamMini) {
     if ('IntersectionObserver' in window) {
       new IntersectionObserver((es) => es.forEach((e) => {
@@ -447,6 +461,7 @@
         const l = layerOf(scene);
         l.scrollTop = dir === 'up' ? l.scrollHeight : 0;
         runMinisOf(scene);
+        camTo(scene, instant);
       }
       if (prev) {
         if (!instant) zoomOut(prev, OUT[dir]); // before the class change: it must start from what is on screen
@@ -523,6 +538,87 @@
     if (!ticking) { ticking = true; window.requestAnimationFrame(frame); }
   }
   window.addEventListener('scroll', requestFrame, { passive: true });
+
+  /* ---------- Paged layout: one drawing through the work chapters ---------- */
+  // Each work chapter keeps its crop as an invisible placeholder (it holds the space in the text); the camera, one
+  // copy of the whole drawing on top, sits over the current chapter's placeholder showing that chapter's part. Moving
+  // to another chapter, it pans and zooms across the drawing (its viewBox) and moves to the new placeholder in one
+  // 1.1 s ease-in-out while the part in focus cross-fades, so the drawing never leaves the screen; it fades away for
+  // a scene without one and fades back in where the next one is.
+  const CAM_MS = 1100;
+  const camEase = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const cropOf = (hl) => CROPS[hl][0].split(' ').map(Number);
+  function camSlot(scene) {
+    const m = minis.find((x) => x.box.closest('.scene') === scene && /^w[1-4]$/.test(x.box.dataset.hl));
+    if (!m) return null;
+    // its place in its layer's own layout (the layer may be mid-zoom: not its transformed box)
+    const layer = layerOf(scene);
+    let top = 0;
+    let left = 0;
+    for (let el = m.box; el && el !== layer; el = el.offsetParent) { top += el.offsetTop; left += el.offsetLeft; }
+    return { m, top: top - layer.scrollTop, left, width: m.box.offsetWidth, height: m.box.offsetHeight };
+  }
+  function camApply(vb, r, hl) {
+    pcam.vb = vb;
+    pcam.svg.setAttribute('viewBox', vb.map((v) => v.toFixed(2)).join(' '));
+    const st = pcam.box.style;
+    st.transform = 'translate(' + r.left.toFixed(1) + 'px,' + r.top.toFixed(1) + 'px)';
+    st.width = r.width.toFixed(1) + 'px';
+    st.height = r.height.toFixed(1) + 'px';
+    const scale = r.width / vb[2];
+    const [, px, cap] = CROPS[hl];
+    pcam.svg.style.setProperty('--lbl', Math.min(cap, Math.max(13, px / scale)).toFixed(1) + 'px');
+  }
+  function camTo(scene, instant) {
+    if (!pcam) return;
+    const hl = paged ? scene.dataset.scene : '';
+    const slot = /^w[1-4]$/.test(hl) ? camSlot(scene) : null;
+    window.cancelAnimationFrame(pcam.raf);
+    if (!slot) {                                  // a scene without the drawing: it fades away
+      pcam.box.classList.remove('on', 'run');
+      pcam.shown = false;
+      return;
+    }
+    const to = cropOf(hl);
+    const changed = pcam.hl !== hl;
+    pcam.hl = hl;
+    pcam.box.dataset.hl = hl;
+    if (changed) {
+      pcam.box.classList.add('run');
+      if (hl === 'w4') seekLoop(pcam.svg, '.g-team', FX_ENTRY_MS);
+      else seekLoop(pcam.svg, '.cl-' + hl, 0);
+      wakeShakes();
+    }
+    if (instant || !pcam.shown || !pcam.vb || reduced) {
+      camApply(to, slot, hl);
+      pcam.r = slot;
+      pcam.raf = 0;
+      pcam.shown = true;
+      pcam.box.classList.add('on');
+      return;
+    }
+    const from = pcam.vb.slice();
+    const r0 = { top: pcam.r ? pcam.r.top : slot.top, left: pcam.r ? pcam.r.left : slot.left,
+      width: pcam.r ? pcam.r.width : slot.width, height: pcam.r ? pcam.r.height : slot.height };
+    const t0 = window.performance.now();
+    const tick = () => {
+      const k = Math.min(1, (window.performance.now() - t0) / CAM_MS);
+      const e = camEase(k);
+      const r1 = camSlot(scene) || slot;            // (follows the new page if it scrolls meanwhile)
+      const r = { top: r0.top + (r1.top - r0.top) * e, left: r0.left + (r1.left - r0.left) * e,
+        width: r0.width + (r1.width - r0.width) * e, height: r0.height + (r1.height - r0.height) * e };
+      camApply(from.map((v, i) => v + (to[i] - v) * e), r, hl);
+      pcam.r = r;
+      pcam.raf = k < 1 ? window.requestAnimationFrame(tick) : 0;
+    };
+    tick();
+  }
+  // a chapter taller than the screen scrolls inside its layer: the drawing moves with it
+  document.addEventListener('scroll', (ev) => {
+    if (!paged || !pcam || !pcam.shown || !active || ev.target !== layerOf(active)) return;
+    const slot = camSlot(active);
+    if (slot && !pcam.raf) { camApply(pcam.vb, slot, pcam.hl); pcam.r = slot; }
+  }, { capture: true, passive: true });
 
   /* ---------- Touch screens: one swipe, one page ---------- */
   // Where the pinned layout cannot be (a phone: narrow, and a scene is often taller than the screen) a touch screen
@@ -690,11 +786,13 @@
       if (pinned || paged) scenes.forEach((s) => s.classList.add('is-in'));
       if (active && (pinned || paged)) active.classList.add('is-active', 'is-live');
       if (paged) runMinisOf(active);
+      if (pcam) { if (paged && active) camTo(active, true); else { pcam.box.classList.remove('on', 'run'); pcam.shown = false; } }
       void root.offsetHeight;
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => root.classList.remove('mode-switch')));
     }
     sizeMiniLabels();
     if (active && (anchor || switched)) scrollToScene(active);
+    if (paged && pcam && pcam.shown && active && !switched) camTo(active, true);
     thumbPlaced = false;
     placeThumb();
   }
