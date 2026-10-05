@@ -166,11 +166,101 @@
   const lines = Array.from(document.querySelectorAll('.scene .r'));
   lines.forEach((el) => { el._scene = el.closest('.scene'); });
 
+  /* ---------- Headings rise letter by letter ---------- */
+  // Each display heading is split into letters, each word clipped to its own box: arriving at a scene, its letters
+  // rise into place one after another (30 ms apart, on the scene's long settle). Screen readers get the heading's
+  // text as its label (the letters are hidden from them: some read separate boxes one letter at a time).
+  const heads = [];
+  document.querySelectorAll('.work h3, .sec, .contact h2').forEach((h) => {
+    const parts = Array.from(h.children).filter((c) => c.matches('.en, .zh'));
+    h._label = {};
+    (parts.length ? parts : [h]).forEach((el) => {
+      if (el.children.length) return;   // (plain text only)
+      const text = el.textContent.replace(/\s+/g, ' ').trim();
+      const split = document.createElement('span');
+      split.className = 'split';
+      split.setAttribute('aria-hidden', 'true');
+      const letters = [];
+      let off = 0;
+      let i = 0;
+      text.split(' ').forEach((w, k) => {
+        if (k) { split.appendChild(document.createTextNode(' ')); off += 1; }
+        const sw = document.createElement('span');
+        sw.className = 'sw';
+        Array.from(w).forEach((c) => {
+          const sc = document.createElement('span');
+          sc.className = 'sc';
+          sc.textContent = c;
+          sc.style.setProperty('--i', i++);
+          sc._at = off;      // (its offset in the whole text)
+          sc._word = k;
+          off += c.length;
+          sw.appendChild(sc);
+          letters.push(sc);
+        });
+        split.appendChild(sw);
+      });
+      el.textContent = '';
+      el.appendChild(split);
+      heads.push({ h, el, text, letters });
+      h._label[el.matches('.zh') ? 'zh' : el.matches('.en') ? 'en' : 'all'] = text;
+      h.closest('.scene')._heads = true;
+    });
+  });
+  function labelHeads(l) {
+    heads.forEach((x) => { const t = x.h._label.all || x.h._label[l]; if (t) x.h.setAttribute('aria-label', t); });
+  }
+  // Splitting a word into boxes loses the font's kerning between its letters: each letter gets back the space the
+  // kerning gave it, measured against the same text set whole (in em, so it holds at every size). Only a shown
+  // language can be measured: on load and on each language change.
+  function kernHeads() {
+    const todo = heads.filter((x) => !x.kerned && x.h.offsetWidth && x.el.getClientRects().length);
+    if (!todo.length) return;
+    const range = document.createRange();
+    const leftOf = (node, a) => { range.setStart(node, a); range.setEnd(node, a + 1); return range.getBoundingClientRect().left; };
+    const refs = todo.map((x) => {
+      const ref = document.createElement('span');
+      ref.style.cssText = 'position:absolute;left:0;top:0;visibility:hidden;white-space:nowrap';
+      ref.textContent = x.text;
+      x.el.appendChild(ref);
+      x.letters.forEach((sc) => { sc.style.marginRight = ''; });
+      return ref;
+    });
+    const set = todo.map((x, n) => {
+      const t = refs[n].firstChild;
+      const scale = x.h.getBoundingClientRect().width / x.h.offsetWidth || 1;
+      const em = parseFloat(getComputedStyle(x.h).fontSize) * scale;
+      return x.letters.map((sc, k) => {
+        const next = x.letters[k + 1];
+        if (!next || next._word !== sc._word) return 0;
+        const whole = leftOf(t, next._at) - leftOf(t, sc._at);
+        const split = leftOf(next.firstChild, 0) - leftOf(sc.firstChild, 0);
+        return (whole - split) / em;
+      });
+    });
+    refs.forEach((r) => r.remove());
+    todo.forEach((x, n) => {
+      x.kerned = true;
+      x.letters.forEach((sc, k) => { if (Math.abs(set[n][k]) > 0.001) sc.style.marginRight = set[n][k].toFixed(4) + 'em'; });
+    });
+  }
+  // delay: when the letters start (after the scene's own delay); null: in place at once
+  function playHeads(scene, delay) {
+    if (!scene._heads) return;
+    scene.classList.remove('split-in');
+    if (delay == null || !canAnimate()) { scene.classList.add('split-now', 'split-in'); return; }
+    scene.classList.remove('split-now');
+    void scene.offsetWidth;   // (back down at once, then up)
+    scene.style.setProperty('--sd', Math.round(delay) + 'ms');
+    scene.classList.add('split-in');
+  }
+
   /* ---------- Scene motion: each scene moves as one block, in depth ---------- */
   // scale and opacity only: a blur on two full-screen layers costs about half the frames
   const IN = { down: 0.9, up: 1.1 };    // where the arriving scene comes from
   const OUT = { down: 1.1, up: 0.9 };   // where the leaving scene goes
   const LEAD = 290;                     // how long a fully visible leaving scene has before the next one starts
+  const HEAD_LAG = 140;                 // the heading's letters start rising once the arriving block shows
   function layerOf(scene) { return scene.querySelector('.layer'); }
   function zoomIn(scene, from, delay, duration) {
     if (!canAnimate()) return 0;
@@ -232,7 +322,8 @@
     if (scene.classList.contains('is-in')) return;
     scene.classList.add('is-in');
     // (the flowing layout's blocks rise in as they scroll into view: exitFade; the pinned one zooms the whole scene)
-    if (animate && pinned) zoomIn(scene, 0.94, baseDelay == null ? 60 : baseDelay, 1000);
+    if (animate && pinned) playHeads(scene, zoomIn(scene, 0.94, baseDelay == null ? 60 : baseDelay, 1000) + HEAD_LAG);
+    else playHeads(scene, animate && !pinned ? (baseDelay || 0) + 60 : null);
     if (!pinned) requestFrame();
   }
 
@@ -468,9 +559,13 @@
         prev.classList.remove('is-active', 'is-live');
       }
       scene.classList.add('is-active');
-      if (instant) scene.classList.add('is-live');
+      if (instant) { scene.classList.add('is-live'); playHeads(scene, null); }
       else {
+        // (a scene called back while still leaving carries on from where it is: its letters are already up)
+        const l = layerOf(scene);
+        const carried = l.getAnimations().length && +getComputedStyle(l).opacity > 0.02;
         const delay = zoomIn(scene, IN[dir], arrivalDelay(scene));
+        if (!carried) playHeads(scene, delay + HEAD_LAG);
         // clickable once it is about half visible
         later(scene, () => { if (scene === active) scene.classList.add('is-live'); }, delay + 120);
       }
@@ -784,6 +879,7 @@
       root.classList.toggle('paged', paged);
       scenes.forEach((s) => { s.classList.remove('is-active', 'is-live'); layerOf(s).getAnimations().forEach((a) => a.cancel()); });
       if (pinned || paged) scenes.forEach((s) => s.classList.add('is-in'));
+      scenes.forEach((s) => { if (s.classList.contains('is-in')) playHeads(s, null); });
       if (active && (pinned || paged)) active.classList.add('is-active', 'is-live');
       if (paged) runMinisOf(active);
       if (pcam) { if (paged && active) camTo(active, true); else { pcam.box.classList.remove('on', 'run'); pcam.shown = false; } }
@@ -912,6 +1008,8 @@
     paintChapter();
     tick();
     placeThumb();
+    labelHeads(l);
+    kernHeads();
   }
   let pendingLang = null;
   langButtons.forEach((b) => {
@@ -1153,6 +1251,9 @@
   /* ---------- First paint ---------- */
   root.setAttribute('data-dir', 'down');
   applyLang(lang());
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => { heads.forEach((x) => { x.kerned = false; }); kernHeads(); });
+  }
   if (pinned) scenes.forEach((s) => s.classList.add('is-in'));
   const start = sceneOf(hashId());
   function land() {

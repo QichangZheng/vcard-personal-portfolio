@@ -1234,6 +1234,14 @@ main { position: relative; z-index: 1; }
 html:not(.pinned) .scene .r { transform-origin: 0 50%; }
 html:not(.pinned) .scene .mini.r { transform-origin: 50% 50%; }   /* (the drawings run edge to edge: from their middle) */
 
+/* display headings rise letter by letter as their scene arrives (site.js 'Headings rise letter by letter'): each word
+   clips its letters to its own box, a little larger than the line so descenders and overhangs are not cut */
+.split .sw { display: inline-block; padding: .06em .08em .1em; margin: -.06em -.08em -.1em; clip-path: inset(0); }
+.split .sc { display: inline-block; }
+.js .scene:not(.split-in) .split .sc { transform: translateY(115%); }
+.scene.split-in .split .sc { transition: transform 1.1s cubic-bezier(.19, 1, .22, 1) calc(var(--sd, 0ms) + var(--i) * 30ms); }
+.scene.split-now .split .sc { transition: none; }
+
 .hero h1 {
   font-size: clamp(46px, 6.4vw, 88px);
   line-height: 1.02;
@@ -1570,6 +1578,7 @@ html.paged .scene .mini:not(.hero-mini) { visibility: hidden; }
 /* ---------- Reduced motion: everything visible, nothing moves ---------- */
 @media (prefers-reduced-motion: reduce) {
   .js .scene:not(.is-in) .r { opacity: 1; }
+  .js .scene .split .sc { transform: none !important; }
   .js .backdrop .draw { stroke-dasharray: none; stroke-dashoffset: 0; }
   .js .backdrop :is(.lbl, .dash) { opacity: 1; }
   .js .backdrop .n { fill-opacity: 1; }
@@ -1588,6 +1597,7 @@ html.paged .scene .mini:not(.hero-mini) { visibility: hidden; }
   html.pinned .scene { height: auto; }
   .layer, html.pinned .layer { position: static; min-height: 0; padding: 24px 0; opacity: 1 !important; filter: none !important; transform: none !important; }
   .js .scene .r { opacity: 1 !important; filter: none !important; transform: none !important; }
+  .js .scene .split .sc { transform: none !important; }
   .col, .about .col, .exp .col, .edu .col { max-width: none; }
   .foot { position: static; margin-top: 24px; }
   h1, h2, h3, .meta { break-after: avoid; }
