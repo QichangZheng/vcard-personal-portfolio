@@ -244,11 +244,11 @@
       x.letters.forEach((sc, k) => { if (Math.abs(set[n][k]) > 0.001) sc.style.marginRight = set[n][k].toFixed(4) + 'em'; });
     });
   }
-  // The heading leads: the rest of its scene (number, line, points, drawing) fades in once the heading is mostly
-  // down, one block after another.
+  // Read from the top down: the number above a heading comes with its scene, the heading follows, and the rest
+  // below it (line, points, drawing) fades in once the heading is mostly in, one block after another.
   scenes.forEach((sc) => {
     if (!sc._heads) return;
-    sc._body = Array.from(sc.querySelectorAll('.r')).filter((el) => !heads.some((x) => x.h === el));
+    sc._body = Array.from(sc.querySelectorAll('.r')).filter((el) => !heads.some((x) => x.h === el) && !el.matches('.meta'));
   });
   // delay: when the letters start (after the scene's own delay), null: in place at once; dir: the way the visitor
   // is going (down: the letters come down from above, up: up from below)
