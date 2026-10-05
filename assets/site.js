@@ -244,15 +244,30 @@
       x.letters.forEach((sc, k) => { if (Math.abs(set[n][k]) > 0.001) sc.style.marginRight = set[n][k].toFixed(4) + 'em'; });
     });
   }
-  // delay: when the letters start (after the scene's own delay); null: in place at once
-  function playHeads(scene, delay) {
+  // The heading leads: the rest of its scene (number, line, points, drawing) fades in once the heading is mostly
+  // down, one block after another.
+  scenes.forEach((sc) => {
+    if (!sc._heads) return;
+    sc._body = Array.from(sc.querySelectorAll('.r')).filter((el) => !heads.some((x) => x.h === el));
+  });
+  // delay: when the letters start (after the scene's own delay), null: in place at once; dir: the way the visitor
+  // is going (down: the letters come down from above, up: up from below)
+  function playHeads(scene, delay, dir) {
     if (!scene._heads) return;
+    scene._body.forEach((el) => el.getAnimations().forEach((a) => { if (a.id === 'after') a.cancel(); }));
     scene.classList.remove('split-in');
     if (delay == null || !canAnimate()) { scene.classList.add('split-now', 'split-in'); return; }
     scene.classList.remove('split-now');
-    void scene.offsetWidth;   // (back down at once, then up)
+    scene.setAttribute('data-from', dir === 'up' ? 'below' : 'above');
+    void scene.offsetWidth;   // (back out at once, then in)
     scene.style.setProperty('--sd', Math.round(delay) + 'ms');
     scene.classList.add('split-in');
+    const n = Math.max(0, ...heads.filter((x) => x.h.closest('.scene') === scene && x.el.getClientRects().length).map((x) => x.letters.length));
+    const after = delay + Math.min(620, 30 * n + 260);
+    scene._body.forEach((el, j) => {
+      el.animate([{ opacity: 0 }, { opacity: 1 }],
+        { duration: 700, delay: after + j * 80, easing: 'cubic-bezier(.25, .1, .25, 1)', fill: 'backwards' }).id = 'after';
+    });
   }
 
   /* ---------- Scene motion: each scene moves as one block, in depth ---------- */
@@ -260,7 +275,7 @@
   const IN = { down: 0.9, up: 1.1 };    // where the arriving scene comes from
   const OUT = { down: 1.1, up: 0.9 };   // where the leaving scene goes
   const LEAD = 290;                     // how long a fully visible leaving scene has before the next one starts
-  const HEAD_LAG = 140;                 // the heading's letters start rising once the arriving block shows
+  const HEAD_LAG = 80;                  // the heading's letters start as the arriving block begins to show
   function layerOf(scene) { return scene.querySelector('.layer'); }
   function zoomIn(scene, from, delay, duration) {
     if (!canAnimate()) return 0;
@@ -322,8 +337,9 @@
     if (scene.classList.contains('is-in')) return;
     scene.classList.add('is-in');
     // (the flowing layout's blocks rise in as they scroll into view: exitFade; the pinned one zooms the whole scene)
-    if (animate && pinned) playHeads(scene, zoomIn(scene, 0.94, baseDelay == null ? 60 : baseDelay, 1000) + HEAD_LAG);
-    else playHeads(scene, animate && !pinned ? (baseDelay || 0) + 60 : null);
+    const dir = root.getAttribute('data-dir');
+    if (animate && pinned) playHeads(scene, zoomIn(scene, 0.94, baseDelay == null ? 60 : baseDelay, 1000) + HEAD_LAG, dir);
+    else playHeads(scene, animate && !pinned ? (baseDelay || 0) + 60 : null, dir);
     if (!pinned) requestFrame();
   }
 
@@ -565,7 +581,7 @@
         const l = layerOf(scene);
         const carried = l.getAnimations().length && +getComputedStyle(l).opacity > 0.02;
         const delay = zoomIn(scene, IN[dir], arrivalDelay(scene));
-        if (!carried) playHeads(scene, delay + HEAD_LAG);
+        if (!carried) playHeads(scene, delay + HEAD_LAG, dir);
         // clickable once it is about half visible
         later(scene, () => { if (scene === active) scene.classList.add('is-live'); }, delay + 120);
       }
