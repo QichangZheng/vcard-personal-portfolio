@@ -878,6 +878,21 @@
       return h <= room;
     });
   }
+  // The four work chapters share one top: each column starts where the tallest of them, centred, would start, so the
+  // number and the heading stay in the same place from chapter to chapter. The depth move grows from that corner, so
+  // they do not slide in either.
+  const workScenes = scenes.filter((s) => s.classList.contains('work'));
+  function alignWork() {
+    if (!(pinned || paged) || !workScenes.length) { root.style.removeProperty('--work-shift'); root.style.removeProperty('--work-y'); return; }
+    const l = layerOf(workScenes[0]);
+    const cs = getComputedStyle(l);
+    const top = parseFloat(cs.paddingTop);
+    const room = l.clientHeight - top - parseFloat(cs.paddingBottom);
+    const tallest = Math.max(...workScenes.map((s) => s.querySelector('.col').offsetHeight));
+    const shift = Math.max(0, Math.round((room - tallest) / 2));
+    root.style.setProperty('--work-shift', shift + 'px');
+    root.style.setProperty('--work-y', top + shift + 'px');
+  }
   // anchor: put the current scene back in place afterwards (after a resize, or when the layout switches); the first
   // call on load does not (the page is where it should be; on a phone, measuring the hero that early could send the
   // page a screen down: Chrome on iOS, seen with ?debug)
@@ -903,6 +918,7 @@
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => root.classList.remove('mode-switch')));
     }
     sizeMiniLabels();
+    alignWork();
     if (active && (anchor || switched)) scrollToScene(active);
     if (paged && pcam && pcam.shown && active && !switched) camTo(active, true);
     thumbPlaced = false;

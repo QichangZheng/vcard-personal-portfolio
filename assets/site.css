@@ -1434,6 +1434,10 @@ html.pinned .layer {
 }
 html.pinned .scene.is-active .layer { opacity: 1; }
 html.pinned .scene.is-live .layer > * { pointer-events: auto; }
+/* the work chapters share one top (site.js alignWork): number and heading stay put from chapter to chapter, and the
+   depth move grows from the column's top corner, so they do not slide in */
+html:is(.pinned, .paged) .work .layer { align-content: start; transform-origin: var(--gutter) var(--work-y, 50%); }
+html:is(.pinned, .paged) .work .col { margin-top: var(--work-shift, 0px); }
 .mode-switch .layer, .mode-switch .backdrop .diagram { transition: none !important; }
 html.pinned .veil { display: none; }
 
@@ -1514,6 +1518,8 @@ html.paged .scene .mini:not(.hero-mini) { visibility: hidden; }
 @media (max-width: 720px) {
   /* a page should fit a phone's screen: the chapters are set a little tighter, the drawings capped in height */
   html.paged .scene:not(.hero) .layer { padding-top: 76px; padding-bottom: 28px; }
+  html.paged .scene.work .layer { padding-top: 102px; padding-bottom: 20px; }   /* (the number line clears the chapter pill above it) */
+  html.paged .scene.work .meta { margin-bottom: 12px; }
   html.paged .work ul { margin-top: 18px; gap: 8px; }
   html.paged .work li { font-size: 15px; line-height: 1.55; }
   html.paged .work .line { margin-top: 8px; }
