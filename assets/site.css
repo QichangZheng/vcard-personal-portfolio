@@ -1385,7 +1385,7 @@ html.intro-on .hero h1 { visibility: hidden; }
 html.intro-on :is(.hero .lede, .hero .role, .hero-mini, .nav) { opacity: 0; }
 html.intro-on .nav { pointer-events: none; visibility: hidden; }
 html.intro-on.intro-out .nav { visibility: visible; }
-html.intro-on.intro-out :is(.hero .lede, .hero .role, .hero-mini, .nav) { opacity: 1; transition: opacity .9s var(--ease) .6s; }
+html.intro-on.intro-out :is(.hero .lede, .hero .role, .hero-mini, .nav) { opacity: 1; transition: opacity .9s var(--ease) .78s; }
 /* if the script never runs, the intro gets out of the way on its own */
 html.intro-on:not(.intro-run) .intro { animation: intro-bail .4s 4s forwards; }
 html.intro-on:not(.intro-run) .hero h1 { animation: intro-show 0s 4.2s forwards; }

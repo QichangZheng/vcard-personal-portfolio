@@ -1262,19 +1262,25 @@
       moving = true;
       timers.forEach((x) => window.clearTimeout(x));
       onMove();
-      const out = [caret, rows[0].querySelector('.pre'), rows[1], rows[2]];
-      out.forEach((el) => el.animate([{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(4px)' }], { duration: 420, easing: 'ease-out', fill: 'forwards' }));
+      // everything but the name fades away, slowly enough to be seen leaving (at 420 ms, mostly gone in the first
+      // 200, it read as a blink): the caret goes first, then the lines, softening as they go; the name sets off
+      // once they are half gone
+      caret.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-out', fill: 'forwards' });
+      [rows[0].querySelector('.pre'), rows[1], rows[2]].forEach((el) => el.animate(
+        [{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(3px)' }],
+        { duration: 820, easing: 'cubic-bezier(.4, 0, .25, 1)', fill: 'forwards' }
+      ));
       const from = Array.from(rows[0].querySelectorAll('.w'));
       const to = Array.from(document.querySelectorAll('#name > ' + (zh ? '.zh' : '.en') + ' .w'));
       // a page that moved behind the curtain anyway (a phone's touch scroll that could not be stopped) goes back to
       // the hero first, so the name still lands on it
       toTop();
       if (!canGlide(to)) {
-        introEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, easing: 'ease', fill: 'forwards' }).finished.then(onDone, onDone);
+        introEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, easing: 'cubic-bezier(.4, 0, .25, 1)', fill: 'forwards' }).finished.then(onDone, onDone);
         return;
       }
-      introEl.querySelector('.curtain').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900, delay: 300, easing: 'ease', fill: 'forwards' });
-      glide(from, to, 200, onDone);
+      introEl.querySelector('.curtain').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900, delay: 460, easing: 'ease', fill: 'forwards' });
+      glide(from, to, 380, onDone);
     }
     timers.push(window.setTimeout(tick, 350));
     introNext = () => { if (!typed) finish(300); else move(); };  // input completes the lines and moves on
