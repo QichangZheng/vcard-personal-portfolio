@@ -1287,6 +1287,9 @@ html[data-lang="zh"] .lede { letter-spacing: .01em; line-height: 1.6; }
   color: var(--ink);
 }
 html[data-lang="zh"] .about .big { letter-spacing: .01em; line-height: 1.6; }
+/* the numbers behind Agent Team, set small under it */
+.about .big + .big { margin-top: 0; }
+.about .stats { margin-top: -14px; margin-bottom: 30px; font-size: 14px; line-height: 1.6; color: var(--mute); }
 .portrait { justify-self: center; width: clamp(200px, 17vw, 260px); }
 .portrait img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 28px; }
 
