@@ -9,7 +9,7 @@
   <link rel="canonical" href="https://www.qichangzheng.net/">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://www.qichangzheng.net/">
-  <meta property="og:title" content="Qichang Zheng — AI Agent Platform Lead">
+  <meta property="og:title" content="Qichang Zheng — AI Agent Platform Engineer">
   <meta property="og:description" content="I build the environment AI agents run in — and a platform for developers to orchestrate many agents working together on complex projects.">
   <meta property="og:image" content="https://www.qichangzheng.net/assets/og.jpg">
   <meta name="twitter:card" content="summary">
@@ -64,8 +64,8 @@
             <span class="zh">我为 AI Agent 构建<span class="nw">运行环境</span>，也为开发者打造在复杂项目中<span class="nw">统筹多个</span> Agent <span class="nw">协同工作</span>的平台。</span>
           </p>
           <p class="role r">
-            <span class="en">AI Agent Platform Lead, based in Shanghai</span>
-            <span class="zh">AI Agent <span class="nw">平台负责人</span>，现居上海</span>
+            <span class="en">AI Agent Platform Engineer, based in Shanghai</span>
+            <span class="zh">AI Agent <span class="nw">平台核心开发者</span>，现居上海</span>
           </p>
         </div>
       </div>
@@ -76,12 +76,12 @@
         <div class="col">
           <h2 id="about-h" class="sr"><span class="en">About</span><span class="zh">关于</span></h2>
           <p class="big r">
-            <span class="en">I lead the AI Agent platform at Qiji Zhifeng in Shanghai, as tech lead of a 10-person team. We build North Agent Cloud, a platform for building, deploying, and running AI agents; it runs in production across several deployments.</span>
-            <span class="zh">我在上海奇绩智峰负责 AI Agent 平台，是 10 人团队的技术负责人。我们做 North Agent Cloud——一个构建、部署和运行 AI Agent 的平台，已在多个生产环境上线。</span>
+            <span class="en">I design and build the AI Agent platform at Qiji Zhifeng in Shanghai: I lead its architecture and core development, and a team of 10. We build North Agent Cloud, a platform for building, deploying, and running AI agents; it runs in production across several deployments.</span>
+            <span class="zh">我在上海奇绩智峰设计并开发 AI Agent 平台，主导架构设计与核心开发，同时带一支 10 人团队。我们做 North Agent Cloud——一个构建、部署和运行 AI Agent 的平台，已在多个生产环境上线。</span>
           </p>
           <p class="r">
-            <span class="en">Most of my own engineering goes through coding agents. I built Agent Team to run them in parallel — and to catch the ways long-running agents fail.</span>
-            <span class="zh">我自己的大部分工程工作是交给编程 Agent 完成的。为此我写了 Agent Team，让它们并行工作，并专门治理长程任务里 Agent 的典型失效。</span>
+            <span class="en">Most of my own engineering goes through coding agents. I built Agent Team to run them in parallel — and to catch the ways long-running agents fail. In one month (Sep 19 – Oct 19, 2026) that came to about 1.18 million new lines of code including tests, 56 features shipped, and over 138 billion tokens.</span>
+            <span class="zh">我自己的大部分工程工作是交给编程 Agent 完成的。为此我写了 Agent Team，让它们并行工作，并专门治理长程任务里 Agent 的典型失效。近一月（2026.09.19–10.19）我这样新增代码约 118 万行（含测试）、上线新功能 56 项，消耗超 1,380 亿 token。</span>
           </p>
           <p class="r">
             <span class="en">Before that I was an AI Scientist at Devz AI in the US, working on enterprise agents, a general-purpose web agent, and fine-tuned domain LLMs.</span>
@@ -101,7 +101,7 @@
       <section class="scene work" id="north-agent-cloud" data-scene="w1" data-nav="work" data-num="01" data-en="North Agent Cloud" data-zh="North Agent Cloud" aria-labelledby="w1-h">
         <div class="layer">
           <div class="col">
-            <p class="meta r"><span class="num">01</span><span class="solo"><span class="en">Tech lead, team of 10</span><span class="zh">技术负责人，10 人团队</span></span></p>
+            <p class="meta r"><span class="num">01</span><span class="solo"><span class="en">Core developer, leading a team of 10</span><span class="zh">核心开发，带 10 人团队</span></span></p>
             <h3 id="w1-h" class="r">North Agent Cloud</h3>
             <p class="line r"><span class="en">A platform for building, deploying, and running AI agents.</span><span class="zh">构建、部署和运行 AI Agent 的平台。</span></p>
             <ul>
@@ -116,12 +116,12 @@
       <section class="scene work" id="north-sandbox" data-scene="w2" data-nav="work" data-num="02" data-en="North Sandbox" data-zh="North Sandbox" aria-labelledby="w2-h">
         <div class="layer">
           <div class="col">
-            <p class="meta r"><span class="num">02</span><span class="solo"><span class="en">Shared across teams</span><span class="zh">供多方使用</span></span></p>
+            <p class="meta r"><span class="num">02</span><span class="solo"><span class="en">Core developer, shared across teams</span><span class="zh">核心开发，供多方使用</span></span></p>
             <h3 id="w2-h" class="r">North Sandbox</h3>
             <p class="line r"><span class="en">A multi-tenant sandbox service compatible with the E2B protocol.</span><span class="zh">兼容 E2B 协议的多租户沙箱服务。</span></p>
             <ul>
               <li class="r"><span class="en">Per-template warm pools bring sandbox acquisition down to milliseconds.</span><span class="zh">按模板预热，沙箱认领降到毫秒级。</span></li>
-              <li class="r"><span class="en">JuiceFS over object storage as the sandbox file system: data persists in real time, and volumes can be remounted elsewhere.</span><span class="zh">用 JuiceFS 连接对象存储作沙箱文件系统：数据实时落盘，存储卷可以灵活切换。</span></li>
+              <li class="r"><span class="en">JuiceFS mounts object storage as the sandbox’s working directory: uploading and viewing files go straight to JuiceFS, without starting the sandbox.</span><span class="zh">以 JuiceFS 将对象存储挂载为沙箱工作目录：上传、查看文件等操作直连 JuiceFS，无需启动沙箱。</span></li>
             </ul>
           </div>
         </div>
@@ -146,11 +146,12 @@
           <div class="col">
             <p class="meta r"><span class="num">04</span><span class="solo"><span class="en">Built solo</span><span class="zh">独立开发</span></span></p>
             <h3 id="w4-h" class="r">Agent Team</h3>
-            <p class="line r"><span class="en">A control plane for running coding agents in parallel.</span><span class="zh">让编程 Agent 并行开发的控制平台。</span></p>
+            <p class="line r"><span class="en">A distributed platform for running many coding agents in parallel, across machines.</span><span class="zh">分布式调度多 Agent 并行协作的工程平台。</span></p>
             <ul>
-              <li class="r"><span class="en">5–10 Claude Code and Codex agents a day, 20+ at peak, each in its own git worktree and Kubernetes namespace, with message routing between them.</span><span class="zh">日常并行 5–10 个 Claude Code / Codex（峰值 20+），各自独立的 worktree 和 K8s 命名空间，Agent 之间由平台路由通讯。</span></li>
+              <li class="r"><span class="en">Schedules and migrates Claude Code and Codex agents across machines, each in its own git worktree and Kubernetes namespace, with message routing between them. In the month to Oct 19, a median of 12 agents ran each day, 35 at peak.</span><span class="zh">跨多台机器调度和迁移 Claude Code / Codex，各自独立的 worktree 和 K8s 命名空间，Agent 之间由平台路由通讯；近一月每天运行 Agent 中位 12 个、峰值 35 个。</span></li>
               <li class="r"><span class="en">Minute-level patrol and custom Stop hooks catch the failure modes of long-running work, like an agent that says it will keep going and then stops. Nothing counts as done until a second agent has tried to prove it broken.</span><span class="zh">分钟级巡检和自研 Stop hook 治理长程任务的典型失效——比如说了要继续却停下；每项改动都要经另一个 Agent 端到端对抗验证，证伪不了才算完成。</span></li>
-              <li class="r"><span class="en">1,400+ commits. My merged pull requests went from about 32 to about 212 a month after it went live.</span><span class="zh">1400+ 次提交；上线后我个人月均合入 PR 从约 32 个增至约 212 个。</span></li>
+              <li class="r"><span class="en">2,500+ commits, about 690k lines. Since it went live, my merged pull requests went from about 41 to about 237 a month, and features shipped from 14 to 66.</span><span class="zh">2500+ 次提交、约 69 万行；上线后我个人月均合入 PR 从约 41 个增至约 237 个，交付功能从 14 项增至 66 项。</span></li>
+              <li class="r"><span class="en">Found that macOS VMs never gave freed memory back to the host, and fixed it in <a href="https://github.com/libkrun/libkrun">libkrun</a> (2.8k stars); merged upstream.</span><span class="zh">定位 macOS 虚拟机内存不归还宿主的问题，为 <a href="https://github.com/libkrun/libkrun">libkrun</a>（2.8k star）实现空闲页归还和批量回收，已合入上游。</span></li>
             </ul>
           </div>
         </div>
@@ -166,7 +167,7 @@
             <li class="row r">
               <span class="when"><span class="en">2026.03 — now</span><span class="zh">2026.03 — 至今</span></span>
               <span class="org"><span class="en">Qiji Zhifeng</span><span class="zh">奇绩智峰</span></span>
-              <span class="title"><span class="en">AI Agent Platform Lead</span><span class="zh">AI Agent 平台负责人</span></span>
+              <span class="title"><span class="en">AI Tech Lead</span><span class="zh">AI 技术负责人</span></span>
             </li>
             <li class="row r">
               <span class="when">2024.08 — 2026.03</span>
