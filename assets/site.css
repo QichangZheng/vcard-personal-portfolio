@@ -1250,6 +1250,11 @@ html[data-lang="zh"] .lede { letter-spacing: .01em; line-height: 1.6; }
 }
 .film-play svg { width: 30px; height: 30px; fill: #fff; }
 .film-card:hover .film-play { transform: scale(1.06); background: #000; }
+/* the cover draws itself (hero-draw.css / hero-draw.js, appended to this file and to site.js by gen.py): its own play
+   disc sits at the end of the slogan's line, so the centred one only stands in on a very short phone screen (below);
+   its dots and bead rest while another scene is the current one */
+.hd > .film-play { display: none; }
+html:is(.pinned, .paged):not([data-scene="hero"]) .hd :is(.dt circle, .bead path) { animation-play-state: paused !important; }
 .film-cap { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-top: 14px; font-size: 14px; color: var(--mute); }
 .film-cap b { font-weight: 600; color: var(--ink); }
 .film-len { white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -1557,9 +1562,9 @@ html.paged .hero .proof { margin-top: 20px; }
 html.paged .hero .proof-note { margin-top: 10px; }
 @container film (max-height: 150px) {
   html.paged .hero .film-in { display: flex; align-items: center; gap: 12px; padding-top: 16px; width: auto; }
-  html.paged .hero .film-card { flex: none; width: 44px; height: 44px; border-radius: 50%; box-shadow: none; background: var(--ink); }
-  html.paged .hero .film-card img { display: none; }
-  html.paged .hero .film-play { position: static; margin: 0; width: 44px; height: 44px; box-shadow: none; }
+  html.paged .hero .film-card { flex: none; width: 44px; height: 44px; aspect-ratio: auto; border-radius: 50%; box-shadow: none; background: var(--ink); }
+  html.paged .hero .film-card :is(.hd-svg, .hd-play) { display: none; }
+  html.paged .hero .film-play { display: grid; position: static; margin: 0; width: 44px; height: 44px; box-shadow: none; }
   html.paged .hero .film-play svg { width: 20px; height: 20px; }
   html.paged .hero .film-cap { flex: 1; margin-top: 0; flex-direction: column; align-items: flex-start; gap: 1px; }
 }
@@ -1696,3 +1701,102 @@ html.paged .scene .mini:not(.hero-mini) { visibility: hidden; }
   .row, li, .block { break-inside: avoid; }
   .exp .col.cv { display: block; }
 }
+
+/* hero-draw.css — the film card whose cover picture draws itself (markup: hero-draw.svg.html, behaviour: hero-draw.js).
+   Everything is scoped under .hd (the <button>). Colours are the film's own (tokens.js): ink #17171a, blue #007aff, caption blue #0062cc. */
+
+/* ---- the card: one button, 16:9 from the first paint (no layout shift). Radius / ring / shadow are the site's .film-card values. */
+.hd {
+  position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 0; border-radius: 18px;
+  overflow: hidden; cursor: pointer; font: inherit; color: inherit; text-align: left; -webkit-tap-highlight-color: transparent;
+  /* the film's paper: a very flat radial tone (tokens.js GROUNDS.cool) */
+  background: #f3f3f4 radial-gradient(ellipse 74% 88% at 50% 42%, #f7f7f8 0, #f3f3f4 52%, #eaeaed 100%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .08), 0 26px 50px -30px rgba(24, 30, 70, .38);
+}
+.hd:focus-visible { outline: 2px solid #3f5bd0; outline-offset: 4px; }
+@media (max-width: 560px) { .hd { border-radius: 14px; } }
+
+.hd-svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; overflow: hidden; pointer-events: none; }
+
+/* with scripting on, nothing shows before hero-draw.js has taken the card over (the site sets .js on <html> in its head) */
+.js .hd:not(.hd-on) > * { visibility: hidden; }
+
+/* before the drawing starts the paper is empty (hero-draw.js: state blank) */
+.hd-blank .hd-svg, .hd-blank .hd-play { visibility: hidden; }
+
+/* ---- lines and tones */
+.hd-svg .s, .hd-svg .b { stroke: #17171a; stroke-linecap: round; stroke-linejoin: round; }
+.hd-svg .s { fill: none; }
+.hd-svg .w1 { stroke-width: 2.93; }      /* the walker's contour: the film's 1.89 x 1.55 */
+.hd-svg .w2 { stroke-width: 1.95; }      /* his details: 1.26 x 1.55 */
+.hd-svg .th { stroke-width: 2.8; }       /* the thread: 1.74 x 1.6 */
+.hd-svg .cw { fill: #fff; }
+.hd-svg .cb { fill: #007aff; }
+.hd-svg .cg { fill: #dfdfe3; }
+.hd-svg .ck { fill: #17171a; }
+.hd-svg .cs { fill: #f5f5f6; }
+.hd-svg .ct { fill: #e3e6ec; }
+.hd-svg .ct2 { fill: #e1e4ea; }
+.hd-svg .cc { fill: #0062cc; }
+/* the street: pale construction lines (the film draws the street at 55 %) */
+.hd-svg .l1 { stroke: rgba(23, 23, 26, .55); }
+.hd-svg .l2 { stroke: rgba(155, 155, 163, .55); }
+.hd-svg .p1 { fill: rgba(230, 231, 235, .55); }
+.hd-svg .p2 { fill: rgba(255, 255, 255, .55); }
+
+/* ---- the five names (live text in the page's own sans) and their dots */
+.hd-svg text { font-family: inherit; fill: #17171a; }
+.hd-svg .nm { font-weight: 500; }
+.hd-svg .nm.hd-zh { letter-spacing: .48px; }
+.hd-svg .dt circle { fill: #b3d7ff; }
+.hd-svg .sl.hd-en { font-size: 60px; font-weight: 600; letter-spacing: -.012em; }
+.hd-svg .sl .cc, .hd-svg tspan.cc { fill: #0062cc; }
+.hd-svg .tips circle { fill: #007aff; }
+
+/* a narrow card (hero-draw.js: FAR_W): the names give way to their dots alone, as in the film when the cloud is seen from afar */
+.hd-far .hd-svg .nm text { visibility: hidden; }
+
+/* ---- two languages: en unless the card (or, before the script runs, the page) says zh */
+.hd .hd-zh { display: none; }
+.hd[data-lang="zh"] .hd-zh, html[data-lang="zh"] .hd:not([data-lang]) .hd-zh { display: inline; }
+.hd[data-lang="zh"] .hd-en, html[data-lang="zh"] .hd:not([data-lang]) .hd-en { display: none; }
+
+/* ---- the play button: the site's own ink disc, set at the end of the slogan's line */
+.hd-play {
+  position: absolute; right: 3.4%; top: 88.05%; width: 6.6%; min-width: 26px; aspect-ratio: 1 / 1; transform: translateY(-50%);
+  display: grid; place-items: center; border-radius: 50%; background: #1d1d1f; box-shadow: 0 8px 20px -8px rgba(0, 0, 0, .5); pointer-events: none;
+}
+.hd-play svg { display: block; width: 44%; height: 44%; fill: #fff; }
+
+/* ---- alive but calm: the dots light in turn (the film's typing dots, 1.5 s), one bead runs down the thread every 5.6 s */
+@keyframes hd-dot { 0%, 48%, 100% { fill: #b3d7ff; } 24% { fill: #007aff; } }
+/* only the language that shows: the other group is display none */
+.hd-live[data-lang="zh"] .hd-zh .dt circle, .hd-live[data-lang="en"] .hd-en .dt circle { animation: hd-dot 1.5s ease-in-out infinite; }
+/* dot j of name i is lit at 0.25 + 0.5 j - 0.41 i seconds (cloud.js dots3) */
+.hd-live .dt circle:nth-child(1) { animation-delay: calc(-3.11s - var(--hd-i, 0) * .41s); }
+.hd-live .dt circle:nth-child(2) { animation-delay: calc(-2.61s - var(--hd-i, 0) * .41s); }
+.hd-live .dt circle:nth-child(3) { animation-delay: calc(-2.11s - var(--hd-i, 0) * .41s); }
+.hd-svg .nm g:nth-of-type(2) { --hd-i: 1; }
+.hd-svg .nm g:nth-of-type(3) { --hd-i: 2; }
+.hd-svg .nm g:nth-of-type(4) { --hd-i: 3; }
+.hd-svg .nm g:nth-of-type(5) { --hd-i: 4; }
+
+.hd-svg .bead path { fill: none; stroke: #007aff; stroke-linecap: round; opacity: 0; }
+.hd-svg .bead path:first-child { stroke-width: 4.4; stroke-dasharray: .11 2; stroke-dashoffset: .11; }      /* its short tail */
+.hd-svg .bead path:last-child { stroke-width: 10.5; stroke-dasharray: .0001 2; }                            /* the bead */
+@keyframes hd-bead { 0%, 70% { stroke-dashoffset: 0; opacity: 0; animation-timing-function: cubic-bezier(.42, 0, .58, 1); } 73% { opacity: 1; } 96% { opacity: 1; } 100% { stroke-dashoffset: -1; opacity: 0; } }
+@keyframes hd-tail { 0%, 70% { stroke-dashoffset: .11; opacity: 0; animation-timing-function: cubic-bezier(.42, 0, .58, 1); } 73% { opacity: 1; } 96% { opacity: 1; } 100% { stroke-dashoffset: -.89; opacity: 0; } }
+.hd-idle .bead path:first-child { animation: hd-tail 5.6s linear -1.9s infinite; }
+.hd-idle .bead path:last-child { animation: hd-bead 5.6s linear -1.9s infinite; }
+
+/* nothing runs while the card is off screen or the tab is hidden */
+.hd.hd-paused .dt circle, .hd.hd-paused .bead path { animation-play-state: paused !important; }
+
+/* reduced motion: the drawn picture, still dots, no bead */
+.hd-still .dt circle, .hd-still .bead path { animation: none !important; }
+.hd-still .dt circle:nth-child(2) { fill: #5aa9ff; }
+@media (prefers-reduced-motion: reduce) {
+  .hd .dt circle, .hd .bead path { animation: none !important; }
+  .hd .dt circle:nth-child(2) { fill: #5aa9ff; }
+}
+@media print { .hd-play { display: none; } }

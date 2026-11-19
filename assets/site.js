@@ -1,3 +1,300 @@
+/* hero-draw.js — the film's cover picture draws itself inside the film card, then stays quietly alive.
+   Plain globals, no dependencies:  HeroDraw.mount(el, { lang })  .play(el)  .finish(el)  .setLang(el, lang)  .seek(el, seconds)
+   The drawn state is the markup itself (hero-draw.svg.html + hero-draw.css): this file only holds strokes back and lets them go. */
+(function (g) {
+'use strict';
+
+/* ------------------------------------------------------------------ the timeline (seconds from the start of the drawing)
+   A pen draws its strokes one after another (the order is in the markup: data-p="<pen><order>"), at one speed, eased over the whole run. */
+var PENS = {            /* pen: [start, duration, blue tip] */
+  /* the street: pale construction lines, growing out of the shop front's corner (its foot line, its corner, the panes, the far building, the bench) */
+  sb: [0.00, 0.46], sa: [0.02, 0.36], sc: [0.10, 0.28], sd: [0.10, 0.44], sg: [0.22, 0.36], se: [0.32, 0.26], sf: [0.32, 0.26], si: [0.36, 0.42], sh: [0.50, 0.24],
+  /* the walker: six pens at once (head, torso, near arm, far arm, near leg, far leg) */
+  ha: [0.42, 0.60, 1], hb: [0.48, 0.62, 1], hd: [0.62, 0.46, 1], hc: [0.72, 0.50, 1], he: [0.78, 0.56, 1], hf: [0.86, 0.54, 1],
+  /* the phone in his hand, then the thread up to the cloud */
+  ph: [1.30, 0.28, 1], th: [1.60, 0.42, 1],
+  /* the cloud: two pens leave from where the thread arrives and meet at the right end; meanwhile the cloudlet and the far mass (cloud.js TL) */
+  ca: [2.00, 0.60, 1], cb: [2.00, 0.26, 1], cc: [2.18, 0.28, 1], cf: [2.26, 0.30, 1],
+  cd: [2.50, 0.16], cg: [2.60, 0.14], ct: [2.60, 0.14], cu: [2.65, 0.14], cv: [2.70, 0.14]
+};
+var FILLS = {           /* fill group: [start, duration, mode]   mode 1 = the colour flows in from the paper's own tone */
+  pane0: [0.48, 0.40], pane1: [0.54, 0.40], bench: [0.74, 0.30],
+  skin: [1.34, 0.22, 1], blue: [1.36, 0.30, 1], grey: [1.44, 0.30, 1], hair: [1.40, 0.26, 1], shoe: [1.48, 0.26, 1], shadow: [1.44, 0.40],
+  phone: [1.56, 0.20, 1],
+  let: [2.44, 0.22], far: [2.54, 0.24], cloud: [2.56, 0.24]
+};
+var CLOSE = 0.07;        /* a walker's fill first closes over what is behind it (paper on paper), then takes its colour */
+var NAMES = [2.70, 0.085, 0.22, 0.10, 0.16];   /* first name, step between names, a name's fade, its dots' delay, the dots' fade */
+var SLOGAN = [3.00, 0.42], PLAY = [3.14, 0.40], END = 3.56;
+var PAPER = [245, 245, 246];
+var TIP_R = 4.4;         /* the blue dot at a pen's tip (user units: 1.2 px on a 450 px card) */
+var LABEL = { zh: '播放 Agent Team 介绍短片', en: 'Play the Agent Team film' };
+/* en names: each row is centred where the film's row is (user units); zh names stand where the film sets them */
+var FAR_W = 420, FAR_S = 1.7;   /* card narrower than FAR_W px: dots alone, FAR_S times larger */
+var ROWS = [[0, 1], [2, 3, 4]], ROW_C = [738.3, 730.2], ROW_GAP = 30, ROW_MAX = [330, 420], DOT_GAP = 11.4, DOT_W = 19.5;
+
+var NS = 'http://www.w3.org/2000/svg', all = [], seq = 0, bound = false;
+var clamp = function (v) { return v < 0 ? 0 : v > 1 ? 1 : v; };
+var sm = function (u) { u = clamp(u); return u * u * (3 - 2 * u); };
+var pen = function (u) { u = clamp(u); return 0.3 * u + 0.7 * u * u * (3 - 2 * u); };     /* a pen: starts and stops, never a uniform wipe */
+var out = function (u) { u = clamp(u); return 1 - (1 - u) * (1 - u) * (1 - u); };
+var reduced = function (st) { return st.reduced === undefined ? !!(g.matchMedia && g.matchMedia('(prefers-reduced-motion: reduce)').matches) : st.reduced; };
+
+function ids(root, n) {                       /* two cards on one page: every id of this copy gets its own suffix */
+  var map = {}, i, j, els = root.querySelectorAll('[id]');
+  for (i = 0; i < els.length; i++) { map[els[i].id] = els[i].id + '-' + n; els[i].id = map[els[i].id]; }
+  els = root.querySelectorAll('[clip-path],[fill^="url("],[href]');
+  for (i = 0; i < els.length; i++) for (j = 0; j < els[i].attributes.length; j++) {
+    var a = els[i].attributes[j], v = a.value.replace(/#([\w-]+)/g, function (m, id) { return map[id] ? '#' + map[id] : m; });
+    if (v !== a.value) a.value = v;
+  }
+}
+
+/* ------------------------------------------------------------------ measuring (once, when the card has a layout) */
+function prepare(st) {
+  if (st.ready) return true;
+  var svg = st.svg, nodes = svg.querySelectorAll('[data-p]'), pens = {}, i, j, k, seen = 0;
+  try {
+    for (i = 0; i < nodes.length; i++) {
+      var n = nodes[i], m = /^([a-z]+)(\d*)$/.exec(n.getAttribute('data-p')), kids = n.tagName === 'g' ? n.children : [n];
+      var p = pens[m[1]] || (pens[m[1]] = { id: m[1], items: [] });
+      for (j = 0; j < kids.length; j++) {
+        var el = kids[j], L = el.getTotalLength(), v = el.getAttribute('data-v'), runs = [], len = 0;
+        if (!(L > 0)) continue;
+        seen++;
+        if (v) { v = v.split(' '); for (k = 0; k + 1 < v.length; k += 2) if (+v[k + 1] > +v[k]) runs.push([v[k] / 1e4 * L, v[k + 1] / 1e4 * L]); } else runs.push([0, L]);
+        if (n.getAttribute('data-r')) { runs.reverse(); for (k = 0; k < runs.length; k++) runs[k].reverse(); }
+        for (k = 0; k < runs.length; k++) len += Math.abs(runs[k][1] - runs[k][0]);
+        p.items.push({ el: el, L: L, runs: runs, len: len, o: (+m[2] || 0) * 1000 + j, q: -1 });
+      }
+    }
+  } catch (e) { return false; }
+  if (!seen) return false;                    /* no layout yet (the card is not displayed): try again when it is */
+  st.pens = [];
+  for (var id in pens) {
+    var P = pens[id], T = PENS[id]; if (!T) continue;
+    P.items.sort(function (a, b) { return a.o - b.o; });
+    var at = 0, prev = null;
+    for (i = 0; i < P.items.length; i++) {
+      var it = P.items[i];
+      if (prev && it.runs.length && prev.runs.length) {     /* the pen is lifted and set down again: that takes a moment */
+        var a0 = prev.el.getPointAtLength(prev.runs[prev.runs.length - 1][1]), b0 = it.el.getPointAtLength(it.runs[0][0]), d = Math.hypot(a0.x - b0.x, a0.y - b0.y);
+        if (d > 2) at += Math.min(26, 6 + d * 0.3);
+      }
+      it.a = at; at += it.len; if (it.len > 0) prev = it;
+    }
+    P.total = at; P.t0 = T[0]; P.dur = T[1]; P.state = -1;
+    if (T[2]) { P.tip = document.createElementNS(NS, 'circle'); P.tip.setAttribute('r', TIP_R); P.tip.style.display = 'none'; st.tips.appendChild(P.tip); }
+    st.pens.push(P);
+  }
+  st.fills = [];
+  nodes = svg.querySelectorAll('[data-f]');
+  for (i = 0; i < nodes.length; i++) {
+    var f = nodes[i], F = FILLS[f.getAttribute('data-f')]; if (!F) continue;
+    var o = { el: f, t0: F[0], dur: F[1], flow: !!F[2], both: f.classList.contains('b'), q: -1 };
+    if (o.flow) { var c = /(\d+)\D+(\d+)\D+(\d+)/.exec(getComputedStyle(f).fill); o.c = c ? [+c[1], +c[2], +c[3]] : [0, 0, 0]; }
+    st.fills.push(o);
+  }
+  st.ready = true;
+  return true;
+}
+
+/* how much of a stroke shows after the pen has drawn `q` of its visible length; returns the tip's place along the path */
+function stroke(it, q) {
+  var s = it.el.style;
+  if (q === it.q) return it.tipAt;
+  it.q = q;
+  if (q <= 0 || !it.runs.length) { s.visibility = 'hidden'; return (it.tipAt = -1); }
+  var segs = [], left = q, i, tip = -1;
+  for (i = 0; i < it.runs.length && left > 0; i++) {
+    var a = it.runs[i][0], b = it.runs[i][1], d = Math.min(left, Math.abs(b - a)), e = a + (b > a ? d : -d);
+    segs.push(a < e ? [a, e] : [e, a]); left -= d; tip = e;
+  }
+  segs.sort(function (x, y) { return x[0] - y[0]; });
+  var arr = [];
+  for (i = 0; i < segs.length; i++) arr.push((segs[i][1] - segs[i][0]).toFixed(2), i + 1 < segs.length ? (segs[i + 1][0] - segs[i][1]).toFixed(2) : (it.L + 10).toFixed(0));
+  s.visibility = ''; s.strokeDasharray = arr.join(' '); s.strokeDashoffset = (-segs[0][0]).toFixed(2);
+  return (it.tipAt = tip);
+}
+
+/* ------------------------------------------------------------------ one moment of the drawing: everything is a function of t */
+function render(st, t) {
+  var i, j, P, it;
+  for (i = 0; i < st.pens.length; i++) {
+    P = st.pens[i];
+    var u = (t - P.t0) / P.dur, state = u <= 0 ? 0 : u >= 1 ? 2 : 1;
+    if (state === P.state && state !== 1) continue;
+    P.state = state;
+    var at = pen(u) * P.total, tipEl = null, tipAt = -1;
+    for (j = 0; j < P.items.length; j++) {
+      it = P.items[j];
+      var q = Math.max(0, Math.min(it.len, at - it.a)), ta = stroke(it, q);
+      if (q > 0 && q < it.len) { tipEl = it; tipAt = ta; }
+    }
+    if (P.tip) {
+      if (state === 1 && tipEl && tipAt >= 0) { var pt = tipEl.el.getPointAtLength(tipAt); P.tip.setAttribute('cx', pt.x.toFixed(1)); P.tip.setAttribute('cy', pt.y.toFixed(1)); P.tip.style.display = ''; }
+      else P.tip.style.display = 'none';
+    }
+  }
+  for (i = 0; i < st.fills.length; i++) {
+    var f = st.fills[i], k, s = f.el.style;
+    if (f.flow) {
+      var kc = clamp((t - f.t0) / CLOSE), kk = sm((t - f.t0 - CLOSE) / f.dur), key = kc + kk;
+      if (key === f.q) continue; f.q = key;
+      s[f.both ? 'fillOpacity' : 'opacity'] = kc.toFixed(3);
+      s.fill = 'rgb(' + Math.round(PAPER[0] + (f.c[0] - PAPER[0]) * kk) + ',' + Math.round(PAPER[1] + (f.c[1] - PAPER[1]) * kk) + ',' + Math.round(PAPER[2] + (f.c[2] - PAPER[2]) * kk) + ')';
+    } else {
+      k = sm((t - f.t0) / f.dur); if (k === f.q) continue; f.q = k;
+      s[f.both ? 'fillOpacity' : 'opacity'] = k.toFixed(3);
+    }
+  }
+  for (i = 0; i < st.names.length; i++) {
+    var nm = st.names[i], idx = i % 5, t0 = NAMES[0] + idx * NAMES[1], a = out((t - t0) / NAMES[2]), b = sm((t - t0 - NAMES[3]) / NAMES[4]);
+    nm.text.style.opacity = a.toFixed(3); nm.text.style.transform = 'translateY(' + ((1 - a) * 5).toFixed(2) + 'px)';
+    nm.dots.style.opacity = b.toFixed(3);
+  }
+  var ks = out((t - SLOGAN[0]) / SLOGAN[1]);
+  for (i = 0; i < st.slog.length; i++) { st.slog[i].style.opacity = ks.toFixed(3); st.slog[i].style.transform = 'translateY(' + ((1 - ks) * 9).toFixed(2) + 'px)'; }
+  if (st.playEl) st.playEl.style.opacity = sm((t - PLAY[0]) / PLAY[1]).toFixed(3);
+}
+
+function clear(st) {                           /* back to the markup's own, drawn state */
+  var i, j, s;
+  if (st.pens) for (i = 0; i < st.pens.length; i++) {
+    st.pens[i].state = -1; if (st.pens[i].tip) st.pens[i].tip.style.display = 'none';
+    for (j = 0; j < st.pens[i].items.length; j++) { s = st.pens[i].items[j]; s.q = -1; s = s.el.style; s.visibility = s.strokeDasharray = s.strokeDashoffset = ''; }
+  }
+  if (st.fills) for (i = 0; i < st.fills.length; i++) { st.fills[i].q = -1; s = st.fills[i].el.style; s.opacity = s.fillOpacity = s.fill = ''; }
+  for (i = 0; i < st.names.length; i++) { s = st.names[i]; s.text.style.opacity = s.text.style.transform = s.dots.style.opacity = ''; }
+  for (i = 0; i < st.slog.length; i++) st.slog[i].style.opacity = st.slog[i].style.transform = '';
+  if (st.playEl) st.playEl.style.opacity = '';
+}
+
+function setState(st, name) {                  /* blank | run | idle */
+  st.state = name;
+  var c = st.el.classList;
+  c.toggle('hd-live', name !== 'blank'); c.toggle('hd-idle', name === 'idle'); c.toggle('hd-blank', name === 'blank');
+}
+
+function tick(st) {
+  st.raf = 0;
+  if (st.state !== 'run') return;
+  if (st.paused) return;                       /* resumed from sync() */
+  var now = g.performance.now();
+  st.t += Math.min(0.1, (now - st.last) / 1000); st.last = now;
+  if (st.t >= END) { finish(st.el); return; }
+  render(st, st.t);
+  st.raf = g.requestAnimationFrame(function () { tick(st); });
+}
+
+function sync(st) {                            /* nothing runs while the card cannot be seen */
+  var paused = !st.visible || document.hidden;
+  st.paused = paused;
+  st.el.classList.toggle('hd-paused', paused);
+  if (!paused) {
+    if (st.want && st.near) { st.want = false; play(st.el); }
+    else if (st.state === 'run' && !st.raf) { st.last = g.performance.now(); st.raf = g.requestAnimationFrame(function () { tick(st); }); }
+  }
+}
+
+/* ------------------------------------------------------------------ the names: the dots stand after each name, whatever font the page has */
+function layout(st) {
+  var grp = st.svg.querySelector('.nm.hd-' + st.lang); if (!grp) return;
+  var texts = grp.querySelectorAll('text'), dots = grp.querySelectorAll('.dt'), w = [], i, r, ok = true;
+  try { for (i = 0; i < texts.length; i++) { w[i] = texts[i].getComputedTextLength(); if (!(w[i] > 0)) ok = false; } } catch (e) { ok = false; }
+  if (!ok) return;
+  var cw = st.el.clientWidth, far = cw > 0 && cw < FAR_W;
+  st.far = far; st.el.classList.toggle('hd-far', far);
+  var place = function (i, x) { texts[i].setAttribute('x', x.toFixed(1)); var y = dots[i].transform.baseVal.getItem(0).matrix.f.toFixed(1);
+    dots[i].setAttribute('transform', far ? 'translate(' + (x + (w[i] + DOT_GAP + DOT_W) / 2).toFixed(1) + ' ' + y + ') scale(' + FAR_S + ') translate(-8.4 0)' : 'translate(' + (x + w[i] + DOT_GAP).toFixed(1) + ' ' + y + ')'); };
+  if (st.lang === 'zh') { for (i = 0; i < texts.length; i++) place(i, +texts[i].getAttribute('x')); return; }
+  for (r = 0; r < ROWS.length; r++) {
+    var row = ROWS[r], total = (row.length - 1) * ROW_GAP, x;
+    for (i = 0; i < row.length; i++) total += w[row[i]] + DOT_GAP + DOT_W;
+    if (total > ROW_MAX[r] && !st.shrunk) {     /* a wide font: set the names a little smaller, once */
+      st.shrunk = true; grp.setAttribute('font-size', (parseFloat(grp.getAttribute('font-size')) * ROW_MAX[r] / total).toFixed(1)); return layout(st);
+    }
+    x = ROW_C[r] - total / 2;
+    for (i = 0; i < row.length; i++) { place(row[i], x); x += w[row[i]] + DOT_GAP + DOT_W + ROW_GAP; }
+  }
+}
+
+/* ------------------------------------------------------------------ the API */
+function get(el) { return el && el.__hd; }
+
+function mount(el, opt) {
+  opt = opt || {};
+  var st = get(el);
+  if (st) { if (opt.lang) setLang(el, opt.lang); return st.api; }
+  if (!el.querySelector('.hd-svg')) {          /* the markup is either already inside the button or in <template id="hero-draw-tpl"> */
+    var tpl = document.getElementById(opt.template || 'hero-draw-tpl');
+    if (!tpl) throw new Error('HeroDraw: no .hd-svg inside the element and no <template id="hero-draw-tpl">');
+    el.appendChild(tpl.content.cloneNode(true));
+  }
+  st = el.__hd = { el: el, svg: el.querySelector('.hd-svg'), playEl: el.querySelector('.hd-play'), t: 0, raf: 0, visible: true, near: true, want: false,
+    reduced: opt.reduced, label: opt.label, names: [], slog: [] };
+  el.classList.add('hd');
+  ids(st.svg, ++seq);
+  st.tips = st.svg.querySelector('.tips');
+  var grp = st.svg.querySelectorAll('.nm'), i, j;
+  for (i = 0; i < grp.length; i++) { var tx = grp[i].querySelectorAll('text'), dt = grp[i].querySelectorAll('.dt'); for (j = 0; j < tx.length; j++) st.names.push({ text: tx[j], dots: dt[j] }); }
+  st.slog = [].slice.call(st.svg.querySelectorAll('.sl'));
+  setLang(el, opt.lang || (/^zh/i.test(document.documentElement.getAttribute('data-lang') || document.documentElement.lang || '') ? 'zh' : 'en'));
+  all.push(st);
+  if (!bound) { bound = true; document.addEventListener('visibilitychange', function () { all.forEach(sync); }); }
+  if (g.IntersectionObserver) {
+    st.near = false; st.visible = false;
+    st.io = new IntersectionObserver(function (es) { var e = es[es.length - 1]; st.visible = e.isIntersecting; st.near = e.intersectionRatio >= 0.3; sync(st); }, { threshold: [0, 0.3] });
+    st.io.observe(el);
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { layout(st); });
+  if (g.ResizeObserver) { st.ro = new ResizeObserver(function () { var cw = el.clientWidth; if (cw > 0 && (cw < FAR_W) !== !!st.far) layout(st); }); st.ro.observe(el); }
+  el.classList.add('hd-on');
+  if (reduced(st)) finish(el);                             /* reduced motion: the drawn picture, at once */
+  else { setState(st, 'blank'); if (opt.autoplay !== false) { st.want = true; sync(st); } }
+  /* autoplay (default): the drawing starts when 30 % of the card is on screen. autoplay: false = the paper stays empty until the host calls play() or finish() */
+  st.api = { play: function () { play(el); }, finish: function () { finish(el); }, setLang: function (l) { setLang(el, l); } };
+  return st.api;
+}
+
+function play(el) {
+  var st = get(el); if (!st) return;
+  st.want = false;
+  if (st.raf) { g.cancelAnimationFrame(st.raf); st.raf = 0; }
+  if (reduced(st) || !prepare(st)) { if (!st.ready && !reduced(st)) st.want = true; finishNow(st); return; }
+  layout(st);
+  clear(st); st.t = 0; setState(st, 'run'); render(st, 0);
+  st.last = g.performance.now();
+  if (!st.paused) st.raf = g.requestAnimationFrame(function () { tick(st); });
+}
+
+function finishNow(st) {
+  if (st.raf) { g.cancelAnimationFrame(st.raf); st.raf = 0; }
+  clear(st); layout(st); setState(st, 'idle');
+}
+function finish(el) { var st = get(el); if (st) { st.want = false; finishNow(st); } }
+
+function seek(el, t) {                         /* a still of the drawing at t seconds (checks and screenshots) */
+  var st = get(el); if (!st) return;
+  st.want = false;
+  if (st.raf) { g.cancelAnimationFrame(st.raf); st.raf = 0; }
+  if (t >= END || !prepare(st)) { finishNow(st); return; }
+  layout(st); clear(st); st.t = t; setState(st, 'run'); st.state = 'seek'; render(st, t);
+}
+
+function setLang(el, lang) {
+  var st = get(el); if (!st) return;
+  st.lang = lang === 'zh' ? 'zh' : 'en';
+  el.setAttribute('data-lang', st.lang);
+  var lb = st.label; el.setAttribute('aria-label', typeof lb === 'string' ? lb : (lb && lb[st.lang]) || LABEL[st.lang]);
+  layout(st);
+}
+
+function setReduced(el, on) { var st = get(el); if (!st) return; st.reduced = on; el.classList.toggle('hd-still', !!on); if (on) finish(el); }
+
+g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: setLang, setReduced: setReduced, END: END, PENS: PENS, FILLS: FILLS };
+})(window);
+;
 (() => {
   /* ---------- ?debug: an on-screen log of what moves the page (for chasing a jump seen only on a phone) ---------- */
   if (/[?&]debug\b/.test(window.location.search)) {
@@ -602,6 +899,7 @@
       }
     }
     if (!instant && prev) redraw(scene);
+    if (prev && scene === scenes[0]) drawHero(700);   // (a page opened on another scene: drawn on its first visit to the hero)
     if (prev && scene.dataset.scene === 'w4') restartStory();
     if (prev && /^(w[123]|hero)$/.test(scene.dataset.scene)) restartChapter(scene.dataset.scene);
     swapChapter(prev, instant);
@@ -1050,6 +1348,7 @@
       img.alt = l === 'zh' ? img.dataset.altZh : img.dataset.altEn;
     });
     links.setAttribute('aria-label', l === 'zh' ? '页面章节' : 'Sections');
+    if (heroCard && HD) HD.setLang(heroCard, l);
     document.querySelectorAll('[data-label-en]').forEach((el) => {
       el.setAttribute('aria-label', l === 'zh' ? el.dataset.labelZh : el.dataset.labelEn);
     });
@@ -1141,6 +1440,19 @@
     document.addEventListener('keydown', (ev) => {
       if (filmOpen && ev.key === 'Escape') { ev.preventDefault(); closeFilm(); }
     }, true);
+  }
+
+  /* ---------- The film's cover draws itself (hero-draw.js, by the film's maker; gen.py puts it ahead of this file) ---------- */
+  // Once per page load: when the hero is the current scene and the intro has landed the name (or, with no intro, as
+  // the hero has arrived). Coming back to the hero later finds it drawn and quietly alive; it is not drawn again.
+  const heroCard = document.querySelector('.film-card.hd');
+  const HD = window.HeroDraw;
+  let heroDrawn = false;
+  if (heroCard && HD) HD.mount(heroCard, { lang: lang(), autoplay: false });
+  function drawHero(ms) {
+    if (heroDrawn || !heroCard || !HD) return;
+    heroDrawn = true;
+    window.setTimeout(() => HD.play(heroCard), ms || 0);
   }
 
   /* ---------- Shanghai local time ---------- */
@@ -1482,6 +1794,7 @@
     const alt = document.querySelector('#name .alt');
     if (alt && canAnimate()) alt.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, easing: EASE });
     settleLater(0);
+    drawHero(0);
   }
   if (reduced) {
     scenes.forEach((s) => s.classList.add('is-in'));
@@ -1500,6 +1813,7 @@
     // a page opened on a chapter sketches its drawing in; the hero has none to sketch
     const sketched = first !== scenes[0];
     if (sketched) sketchAll(0.15);
+    else drawHero(pinned ? 900 : 700);
     window.requestAnimationFrame(() => window.requestAnimationFrame(() => { markDrawn(); settleLater(sketched ? 3600 : 0); }));
   }
   exitFade();
