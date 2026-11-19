@@ -1171,7 +1171,7 @@
   };
   if (rmQuery.addEventListener) rmQuery.addEventListener('change', onRm);
 
-  /* ---------- Intro (a browser's first visit only): "Hi, I'm Qichang Zheng", and the name travels into the hero ---------- */
+  /* ---------- Intro: a few greetings, then "我是郑其昌"; the name travels into the hero ---------- */
   const introEl = document.querySelector('.intro');
   let introOn = root.classList.contains('intro-on') && Boolean(introEl) && canAnimate();
   let introNext = null;
@@ -1198,7 +1198,7 @@
   // each intro word travels in a straight line onto the same word of the hero title,
   // slow at both ends and quicker in the middle (the owner's call: no corner in the path)
   let gliding = false;
-  const GLIDE_MS = 780;
+  const GLIDE_MS = 1300;
   const textRange = document.createRange();
   function textBox(el) { textRange.selectNodeContents(el); return textRange.getBoundingClientRect(); }
   // an empty inline-block sits with its bottom on the line's baseline
@@ -1215,7 +1215,7 @@
     // a name that lands on two lines: the second word sets off a little later, so it passes under
     // the first instead of through it; on one line both words travel together
     const tops = to.map((t) => t.getBoundingClientRect().top);
-    const stagger = tops.length > 1 && Math.abs(tops[1] - tops[0]) > 4 ? 100 : 0;
+    const stagger = tops.length > 1 && Math.abs(tops[1] - tops[0]) > 4 ? 140 : 0;
     from.forEach((w, i) => {
       const target = to[i];
       if (!target) return;
@@ -1255,51 +1255,100 @@
   }
   window.addEventListener('resize', landGlide);
 
-  // one line, there at once ("Hi, I'm Qichang Zheng"); a moment later the greeting leaves and the name travels (and
-  // grows) into the hero title: under 1.5 s in all, and only on a browser's first visit (the page's first script
-  // reads 'seen'; it is written below, at first paint)
+  // three lines typed out; then everything but the name leaves and the name travels (and grows)
+  // into the hero title
   function playTypeIntro(onMove, onDone) {
     const zh = lang() === 'zh';
     const block = introEl.querySelector('.typer');
-    const row = block.querySelector('.ty');
-    // the line is split so the name can be handed over word by word
+    const rows = Array.from(block.querySelectorAll('.ty'));
+    // line 1 is split so the name can be handed over word by word
     const first = zh ? [['pre', '你好，我是'], ['w', '郑其昌']] : [['pre', 'Hi, I’m'], ['sp', ' '], ['w', 'Qichang'], ['sp', ' '], ['w', 'Zheng']];
-    row.textContent = '';
+    // lines 2 and 3; 'hl' parts are set in the drawing's blue
+    const rest = zh
+      ? [[['', '一名 '], ['hl', 'Agent 工程师']], [['', '欢迎来到我的主页']]]
+      : [[['', 'An '], ['hl', 'AI agent engineer']], [['', 'Welcome to my homepage']]];
+    const perChar = zh ? 80 : 38;
+    const chars = [];
+    const addChars = (parent, text, r) => Array.from(text).forEach((ch) => {
+      const c = document.createElement('span');
+      c.className = 'c';
+      c.textContent = ch;
+      parent.appendChild(c);
+      chars.push({ r, el: c });
+    });
+    // every character is laid out from the start (invisible), so nothing shifts while it types
+    rows.forEach((row) => { row.textContent = ''; });
     let nm = null;
     first.forEach(([kind, text]) => {
-      if (kind === 'sp') { (nm || row).appendChild(document.createTextNode(text)); return; }
-      if (kind === 'pre') { const pre = document.createElement('span'); pre.className = 'pre'; pre.textContent = text; row.appendChild(pre); return; }
-      if (!nm) { nm = document.createElement('span'); nm.className = 'nm'; row.appendChild(nm); }
+      if (kind === 'sp') { addChars(nm || rows[0], text, 0); return; }
+      if (kind === 'pre') { const pre = document.createElement('span'); pre.className = 'pre'; rows[0].appendChild(pre); addChars(pre, text, 0); return; }
+      if (!nm) { nm = document.createElement('span'); nm.className = 'nm'; rows[0].appendChild(nm); }
       const w = document.createElement('span');
       w.className = 'w';
-      w.textContent = text;
       nm.appendChild(w);
+      addChars(w, text, 0);
     });
-    block.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
+    rest.forEach((parts, k) => parts.forEach(([kind, text]) => {
+      let parent = rows[k + 1];
+      if (kind === 'hl') { parent = document.createElement('span'); parent.className = 'hl'; rows[k + 1].appendChild(parent); }
+      addChars(parent, text, k + 1);
+    }));
+    const caret = document.createElement('span');
+    caret.className = 'caret';
+    rows[0].insertBefore(caret, rows[0].firstChild);
+    block.classList.add('typing');
+    const timers = [];
+    let i = 0;
+    let typed = false;
     let moving = false;
-    let timer = 0;
+    function tick() {
+      if (i >= chars.length) { finish(); return; }
+      const c = chars[i];
+      c.el.classList.add('on');
+      c.el.after(caret);
+      i += 1;
+      const next = chars[i];
+      let d = perChar;
+      if (next && next.r !== c.r) d = 380;                         // a breath at the end of each line
+      else if ('，,'.includes(c.el.textContent)) d = perChar * 3;
+      timers.push(window.setTimeout(tick, d));
+    }
+    function finish(hold) {
+      if (typed) return;
+      typed = true;
+      timers.forEach((x) => window.clearTimeout(x));
+      chars.forEach((c) => c.el.classList.add('on'));
+      chars[chars.length - 1].el.after(caret);
+      block.classList.remove('typing');
+      timers.push(window.setTimeout(move, hold == null ? 750 : hold));
+    }
     function move() {
       if (moving) return;
       moving = true;
-      window.clearTimeout(timer);
+      timers.forEach((x) => window.clearTimeout(x));
       onMove();
-      const pre = row.querySelector('.pre');
-      if (pre) pre.animate([{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(3px)' }],
-        { duration: 320, easing: 'cubic-bezier(.4, 0, .25, 1)', fill: 'forwards' });
-      const from = Array.from(row.querySelectorAll('.w'));
+      // everything but the name fades away, slowly enough to be seen leaving (at 420 ms, mostly gone in the first
+      // 200, it read as a blink): the caret goes first, then the lines, softening as they go; the name sets off
+      // once they are half gone
+      caret.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-out', fill: 'forwards' });
+      [rows[0].querySelector('.pre'), rows[1], rows[2]].forEach((el) => el.animate(
+        [{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(3px)' }],
+        { duration: 820, easing: 'cubic-bezier(.4, 0, .25, 1)', fill: 'forwards' }
+      ));
+      const from = Array.from(rows[0].querySelectorAll('.w'));
       const to = Array.from(document.querySelectorAll('#name > ' + (zh ? '.zh' : '.en') + ' .w'));
       // a page that moved behind the curtain anyway (a phone's touch scroll that could not be stopped) goes back to
       // the hero first, so the name still lands on it
       toTop();
       if (!canGlide(to)) {
-        introEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, easing: 'cubic-bezier(.4, 0, .25, 1)', fill: 'forwards' }).finished.then(onDone, onDone);
+        introEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, easing: 'cubic-bezier(.4, 0, .25, 1)', fill: 'forwards' }).finished.then(onDone, onDone);
         return;
       }
-      introEl.querySelector('.curtain').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 520, delay: 120, easing: 'ease', fill: 'forwards' });
-      glide(from, to, 40, onDone);
+      introEl.querySelector('.curtain').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900, delay: 460, easing: 'ease', fill: 'forwards' });
+      glide(from, to, 380, onDone);
     }
-    timer = window.setTimeout(move, 220);
-    introNext = move;                                              // any input moves on at once
+    timers.push(window.setTimeout(tick, 350));
+    introNext = () => { if (!typed) finish(300); else move(); };  // input completes the lines and moves on
   }
 
   /* ---------- First paint ---------- */
@@ -1431,7 +1480,7 @@
     root.classList.remove('intro-on', 'intro-out', 'intro-run');
     introEl.remove();
     const alt = document.querySelector('#name .alt');
-    if (alt && canAnimate()) alt.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, easing: EASE });
+    if (alt && canAnimate()) alt.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, easing: EASE });
     settleLater(0);
   }
   if (reduced) {
@@ -1453,6 +1502,5 @@
     if (sketched) sketchAll(0.15);
     window.requestAnimationFrame(() => window.requestAnimationFrame(() => { markDrawn(); settleLater(sketched ? 3600 : 0); }));
   }
-  store.set('seen', '1');   // the intro plays once per browser
   exitFade();
 })();
