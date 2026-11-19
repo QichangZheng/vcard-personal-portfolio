@@ -49,7 +49,6 @@
   // viewBox crops of the drawing for narrow screens:
   // [viewBox, smallest label size on screen in px, largest label size in drawing units so labels fit their boxes]
   const CROPS = {
-    hero: ['-4 8 916 764', 9, 18],     // the whole drawing, both panels and the client the requests come from
     w1: ['-8 40 668 417.5', 12, 17],   // (with the sandboxes faded beside it, as the other chapters show their neighbours)
     w2: ['342 100 468 292', 12, 18],
     w3: ['500 6 556 348', 12, 19],
@@ -161,6 +160,22 @@
       const scale = w / m.width;
       m.svg.style.setProperty('--lbl', Math.min(m.cap, Math.max(13, m.px / scale)).toFixed(1) + 'px');
     });
+  }
+
+  // the wide drawing's labels: about 14 px on screen for a box's name at any window width, in drawing units and per
+  // panel (chapters 01-03 see the runtime environment at 1.3x, chapter 04 the team panel at 1.175x, 1x below 1280 px:
+  // site.css), up to the size the phone crops showed still fits the boxes
+  function sizeBackdropLabels() {
+    if (!drawing) return;
+    const cs = getComputedStyle(drawing);
+    const w = parseFloat(cs.width);
+    const h = parseFloat(cs.height);
+    if (!w || !h) return;
+    const unit = Math.min(w / 916, h / 768);
+    const lbl = (zoom, cap) => Math.min(cap, Math.max(13, 14 / (unit * zoom))).toFixed(1) + 'px';
+    drawing.style.setProperty('--lbl', lbl(1.3, 17));
+    const team = drawing.querySelector('.g-team');
+    if (team) team.style.setProperty('--lbl', lbl(window.innerWidth >= 1280 ? 1.175 : 1, 18));
   }
 
   const lines = Array.from(document.querySelectorAll('.scene .r'));
@@ -741,7 +756,7 @@
   let swipe = null;
   window.addEventListener('touchstart', (ev) => {
     swipe = null;
-    if (!paged || introOn || ev.touches.length !== 1 || !active) return;
+    if (!paged || introOn || filmOpen || ev.touches.length !== 1 || !active) return;
     const l = layerOf(active);
     const t = ev.touches[0];
     swipe = { x: t.clientX, y: t.clientY, t: window.performance.now(), l, top: l.scrollTop,
@@ -800,6 +815,7 @@
   let travel = 0;
   let gestureUsed = false;
   window.addEventListener('wheel', (ev) => {
+    if (filmOpen) { if (ev.cancelable) ev.preventDefault(); return; }   // the film is playing over the page
     // sideways swipes stay with the browser (two-finger back/forward)
     if (!pinned || ev.ctrlKey || Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) return;
     ev.preventDefault();
@@ -847,7 +863,7 @@
     }, 160);
   }, { passive: true });
   document.addEventListener('keydown', (ev) => {
-    if (!pinned || introOn || ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+    if (!pinned || introOn || filmOpen || ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
     const t = ev.target;
     if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
     const onControl = t.closest && t.closest('button, a, summary');
@@ -918,6 +934,7 @@
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => root.classList.remove('mode-switch')));
     }
     sizeMiniLabels();
+    sizeBackdropLabels();
     alignWork();
     if (active && (anchor || switched)) scrollToScene(active);
     if (paged && pcam && pcam.shown && active && !switched) camTo(active, true);
@@ -1033,6 +1050,9 @@
       img.alt = l === 'zh' ? img.dataset.altZh : img.dataset.altEn;
     });
     links.setAttribute('aria-label', l === 'zh' ? '页面章节' : 'Sections');
+    document.querySelectorAll('[data-label-en]').forEach((el) => {
+      el.setAttribute('aria-label', l === 'zh' ? el.dataset.labelZh : el.dataset.labelEn);
+    });
     document.querySelectorAll('.diagram .lbl[data-zh]').forEach((t) => {
       if (!t.dataset.en) t.dataset.en = t.textContent;
       t.textContent = l === 'zh' ? t.dataset.zh : t.dataset.en;
@@ -1078,6 +1098,51 @@
   document.addEventListener('click', (ev) => { if (!nav.contains(ev.target)) openMenu(false); });
   nav.addEventListener('focusout', (ev) => { if (!nav.contains(ev.relatedTarget)) openMenu(false); });
 
+  /* ---------- The film: one player for the whole page ---------- */
+  // The cover in the hero and the button in chapter 04 open the same layer. The video file is asked for only then
+  // (preload="none", its src set on first opening); it plays with sound (the click allows it). Closing (the dark
+  // ground, Esc, the close button) pauses it and gives the page back where it was; while it is open the page behind
+  // can be neither scrolled, stepped through nor tabbed into.
+  const film = document.getElementById('film');
+  const filmVideo = film && film.querySelector('video');
+  const filmBehind = [nav, document.getElementById('main'), document.querySelector('.skip')].filter(Boolean);
+  let filmOpen = false;
+  let filmFrom = null;
+  let filmTimer = 0;
+  function openFilm(from) {
+    if (!film || filmOpen || introOn) return;
+    filmOpen = true;
+    filmFrom = from || null;
+    window.clearTimeout(filmTimer);
+    openMenu(false);
+    if (!filmVideo.getAttribute('src')) filmVideo.setAttribute('src', filmVideo.dataset.src);
+    film.hidden = false;
+    root.classList.add('film-open');
+    filmBehind.forEach((el) => { el.inert = true; });
+    void film.offsetHeight;
+    film.classList.add('on');
+    const playing = filmVideo.play();
+    if (playing && playing.catch) playing.catch(() => { /* the controls are there */ });
+    filmVideo.focus({ preventScroll: true });
+  }
+  function closeFilm() {
+    if (!filmOpen) return;
+    filmOpen = false;
+    filmVideo.pause();
+    film.classList.remove('on');
+    root.classList.remove('film-open');
+    filmBehind.forEach((el) => { el.inert = false; });
+    filmTimer = window.setTimeout(() => { film.hidden = true; }, 300);
+    if (filmFrom && filmFrom.focus) filmFrom.focus({ preventScroll: true });
+  }
+  if (film) {
+    document.querySelectorAll('[data-film]').forEach((b) => b.addEventListener('click', () => openFilm(b)));
+    film.addEventListener('click', (ev) => { if (ev.target === film || ev.target.closest('.film-close')) closeFilm(); });
+    document.addEventListener('keydown', (ev) => {
+      if (filmOpen && ev.key === 'Escape') { ev.preventDefault(); closeFilm(); }
+    }, true);
+  }
+
   /* ---------- Shanghai local time ---------- */
   const clock = document.querySelector('.clock');
   const time = clock && clock.querySelector('.time');
@@ -1106,7 +1171,7 @@
   };
   if (rmQuery.addEventListener) rmQuery.addEventListener('change', onRm);
 
-  /* ---------- Intro: a few greetings, then "我是郑其昌"; the name travels into the hero ---------- */
+  /* ---------- Intro (a browser's first visit only): "Hi, I'm Qichang Zheng", and the name travels into the hero ---------- */
   const introEl = document.querySelector('.intro');
   let introOn = root.classList.contains('intro-on') && Boolean(introEl) && canAnimate();
   let introNext = null;
@@ -1133,7 +1198,7 @@
   // each intro word travels in a straight line onto the same word of the hero title,
   // slow at both ends and quicker in the middle (the owner's call: no corner in the path)
   let gliding = false;
-  const GLIDE_MS = 1300;
+  const GLIDE_MS = 780;
   const textRange = document.createRange();
   function textBox(el) { textRange.selectNodeContents(el); return textRange.getBoundingClientRect(); }
   // an empty inline-block sits with its bottom on the line's baseline
@@ -1150,7 +1215,7 @@
     // a name that lands on two lines: the second word sets off a little later, so it passes under
     // the first instead of through it; on one line both words travel together
     const tops = to.map((t) => t.getBoundingClientRect().top);
-    const stagger = tops.length > 1 && Math.abs(tops[1] - tops[0]) > 4 ? 140 : 0;
+    const stagger = tops.length > 1 && Math.abs(tops[1] - tops[0]) > 4 ? 100 : 0;
     from.forEach((w, i) => {
       const target = to[i];
       if (!target) return;
@@ -1190,100 +1255,51 @@
   }
   window.addEventListener('resize', landGlide);
 
-  // three lines typed out; then everything but the name leaves and the name travels (and grows)
-  // into the hero title
+  // one line, there at once ("Hi, I'm Qichang Zheng"); a moment later the greeting leaves and the name travels (and
+  // grows) into the hero title: under 1.5 s in all, and only on a browser's first visit (the page's first script
+  // reads 'seen'; it is written below, at first paint)
   function playTypeIntro(onMove, onDone) {
     const zh = lang() === 'zh';
     const block = introEl.querySelector('.typer');
-    const rows = Array.from(block.querySelectorAll('.ty'));
-    // line 1 is split so the name can be handed over word by word
+    const row = block.querySelector('.ty');
+    // the line is split so the name can be handed over word by word
     const first = zh ? [['pre', '你好，我是'], ['w', '郑其昌']] : [['pre', 'Hi, I’m'], ['sp', ' '], ['w', 'Qichang'], ['sp', ' '], ['w', 'Zheng']];
-    // lines 2 and 3; 'hl' parts are set in the drawing's blue
-    const rest = zh
-      ? [[['', '一名 '], ['hl', 'Agent 工程师']], [['', '欢迎来到我的主页']]]
-      : [[['', 'An '], ['hl', 'AI agent engineer']], [['', 'Welcome to my homepage']]];
-    const perChar = zh ? 80 : 38;
-    const chars = [];
-    const addChars = (parent, text, r) => Array.from(text).forEach((ch) => {
-      const c = document.createElement('span');
-      c.className = 'c';
-      c.textContent = ch;
-      parent.appendChild(c);
-      chars.push({ r, el: c });
-    });
-    // every character is laid out from the start (invisible), so nothing shifts while it types
-    rows.forEach((row) => { row.textContent = ''; });
+    row.textContent = '';
     let nm = null;
     first.forEach(([kind, text]) => {
-      if (kind === 'sp') { addChars(nm || rows[0], text, 0); return; }
-      if (kind === 'pre') { const pre = document.createElement('span'); pre.className = 'pre'; rows[0].appendChild(pre); addChars(pre, text, 0); return; }
-      if (!nm) { nm = document.createElement('span'); nm.className = 'nm'; rows[0].appendChild(nm); }
+      if (kind === 'sp') { (nm || row).appendChild(document.createTextNode(text)); return; }
+      if (kind === 'pre') { const pre = document.createElement('span'); pre.className = 'pre'; pre.textContent = text; row.appendChild(pre); return; }
+      if (!nm) { nm = document.createElement('span'); nm.className = 'nm'; row.appendChild(nm); }
       const w = document.createElement('span');
       w.className = 'w';
+      w.textContent = text;
       nm.appendChild(w);
-      addChars(w, text, 0);
     });
-    rest.forEach((parts, k) => parts.forEach(([kind, text]) => {
-      let parent = rows[k + 1];
-      if (kind === 'hl') { parent = document.createElement('span'); parent.className = 'hl'; rows[k + 1].appendChild(parent); }
-      addChars(parent, text, k + 1);
-    }));
-    const caret = document.createElement('span');
-    caret.className = 'caret';
-    rows[0].insertBefore(caret, rows[0].firstChild);
-    block.classList.add('typing');
-    const timers = [];
-    let i = 0;
-    let typed = false;
+    block.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
     let moving = false;
-    function tick() {
-      if (i >= chars.length) { finish(); return; }
-      const c = chars[i];
-      c.el.classList.add('on');
-      c.el.after(caret);
-      i += 1;
-      const next = chars[i];
-      let d = perChar;
-      if (next && next.r !== c.r) d = 380;                         // a breath at the end of each line
-      else if ('，,'.includes(c.el.textContent)) d = perChar * 3;
-      timers.push(window.setTimeout(tick, d));
-    }
-    function finish(hold) {
-      if (typed) return;
-      typed = true;
-      timers.forEach((x) => window.clearTimeout(x));
-      chars.forEach((c) => c.el.classList.add('on'));
-      chars[chars.length - 1].el.after(caret);
-      block.classList.remove('typing');
-      timers.push(window.setTimeout(move, hold == null ? 750 : hold));
-    }
+    let timer = 0;
     function move() {
       if (moving) return;
       moving = true;
-      timers.forEach((x) => window.clearTimeout(x));
+      window.clearTimeout(timer);
       onMove();
-      // everything but the name fades away, slowly enough to be seen leaving (at 420 ms, mostly gone in the first
-      // 200, it read as a blink): the caret goes first, then the lines, softening as they go; the name sets off
-      // once they are half gone
-      caret.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-out', fill: 'forwards' });
-      [rows[0].querySelector('.pre'), rows[1], rows[2]].forEach((el) => el.animate(
-        [{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(3px)' }],
-        { duration: 820, easing: 'cubic-bezier(.4, 0, .25, 1)', fill: 'forwards' }
-      ));
-      const from = Array.from(rows[0].querySelectorAll('.w'));
+      const pre = row.querySelector('.pre');
+      if (pre) pre.animate([{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(3px)' }],
+        { duration: 320, easing: 'cubic-bezier(.4, 0, .25, 1)', fill: 'forwards' });
+      const from = Array.from(row.querySelectorAll('.w'));
       const to = Array.from(document.querySelectorAll('#name > ' + (zh ? '.zh' : '.en') + ' .w'));
       // a page that moved behind the curtain anyway (a phone's touch scroll that could not be stopped) goes back to
       // the hero first, so the name still lands on it
       toTop();
       if (!canGlide(to)) {
-        introEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, easing: 'cubic-bezier(.4, 0, .25, 1)', fill: 'forwards' }).finished.then(onDone, onDone);
+        introEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, easing: 'cubic-bezier(.4, 0, .25, 1)', fill: 'forwards' }).finished.then(onDone, onDone);
         return;
       }
-      introEl.querySelector('.curtain').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900, delay: 460, easing: 'ease', fill: 'forwards' });
-      glide(from, to, 380, onDone);
+      introEl.querySelector('.curtain').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 520, delay: 120, easing: 'ease', fill: 'forwards' });
+      glide(from, to, 40, onDone);
     }
-    timers.push(window.setTimeout(tick, 350));
-    introNext = () => { if (!typed) finish(300); else move(); };  // input completes the lines and moves on
+    timer = window.setTimeout(move, 220);
+    introNext = move;                                              // any input moves on at once
   }
 
   /* ---------- First paint ---------- */
@@ -1415,8 +1431,8 @@
     root.classList.remove('intro-on', 'intro-out', 'intro-run');
     introEl.remove();
     const alt = document.querySelector('#name .alt');
-    if (alt && canAnimate()) alt.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, easing: EASE });
-    settleLater(2600);
+    if (alt && canAnimate()) alt.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, easing: EASE });
+    settleLater(0);
   }
   if (reduced) {
     scenes.forEach((s) => s.classList.add('is-in'));
@@ -1425,15 +1441,18 @@
     root.classList.add('intro-run');
     setBehind(true);
     first.classList.add('is-in');
-    // the drawing and the rest of the hero arrive while the name moves; the pen starts as the curtain lifts
-    sketchAll(1.3);
+    // the rest of the hero arrives while the name moves (the hero shows no drawing: nothing is sketched; it is
+    // simply there by the time chapter 01 comes)
     const onMove = () => { markDrawn(); root.classList.add('intro-out'); };
     playTypeIntro(onMove, introDone);
   } else {
     if (pinned) zoomIn(first, 0.96, 150, 1200);
     else reveal(first, true, 150);
-    sketchAll(0.15);
-    window.requestAnimationFrame(() => window.requestAnimationFrame(() => { markDrawn(); settleLater(3600); }));
+    // a page opened on a chapter sketches its drawing in; the hero has none to sketch
+    const sketched = first !== scenes[0];
+    if (sketched) sketchAll(0.15);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => { markDrawn(); settleLater(sketched ? 3600 : 0); }));
   }
+  store.set('seen', '1');   // the intro plays once per browser
   exitFade();
 })();
