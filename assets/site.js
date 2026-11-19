@@ -475,6 +475,65 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     if (team) team.style.setProperty('--lbl', lbl(window.innerWidth >= 1280 ? 1.175 : 1, 18));
   }
 
+  /* ---------- The hero (wide screens): the whole drawing beside the text, the four products named on it ---------- */
+  // The drawing takes the room right of the hero's text, as large as it fits whole: first with only its panels clear
+  // of the text (the client's box, alone left of them, may reach in beside the name if nothing is in its way), else
+  // all of it. The result is a transform for the hero (--hero-tf; the chapters keep theirs, so going on to 01 is one
+  // camera move over the same drawing), the drawing's left end for the backdrop's soft edge (--hero-left), and the
+  // place of each product's name (.ptags a: data-at, in the drawing's units).
+  const ptags = document.querySelector('.ptags');
+  const VB = { x: -4, y: 4, w: 916, h: 768 };          // the drawing's viewBox (gen.py)
+  const HERO_BOX = { x0: 122, xAll: 4, x1: 904, y0: 12, y1: 766, client: [6, 180, 98, 220] };
+  function frameHero() {
+    if (!drawing || getComputedStyle(drawing.parentNode).display === 'none') return;
+    const cs = getComputedStyle(drawing);
+    const w = parseFloat(cs.width);
+    const h = parseFloat(cs.height);
+    if (!w || !h) return;
+    const vw = drawing.parentNode.clientWidth;
+    const vh = drawing.parentNode.clientHeight;
+    const unit = Math.min(w / VB.w, h / VB.h);
+    const ox = (w - VB.w * unit) / 2;
+    const oy = (h - VB.h * unit) / 2;
+    const cx = vw - parseFloat(cs.right) - w / 2;       // the drawing's centre before any transform
+    const cy = parseFloat(cs.top) + h / 2;
+    // the hero's text, where it would stand with its layer at rest (the layer may be mid-zoom, or scrolled away)
+    const layer = layerOf(scenes[0]);
+    const lr = layer.getBoundingClientRect();
+    const k = layer.offsetWidth ? lr.width / layer.offsetWidth : 1;
+    const texts = [];
+    layer.querySelectorAll('#name .w, #name .alt > span, .lede > span, .role > span, .proof b, .proof li > span, .proof-note > span, .hero-cta .film-btn').forEach((el) => {
+      if (!el.getClientRects().length) return;
+      let r = el.getBoundingClientRect();
+      if (!/^(B|BUTTON)$/.test(el.tagName) && !el.classList.contains('w')) { textRange.selectNodeContents(el); r = textRange.getBoundingClientRect(); }
+      if (!r.width) return;
+      texts.push({ l: (r.left - lr.left) / k, r: (r.right - lr.left) / k, t: (r.top - lr.top) / k, b: (r.bottom - lr.top) / k });
+    });
+    if (!texts.length) return;
+    const A = { l: Math.max(...texts.map((t) => t.r)) + 30, r: vw - 30, t: 66, b: vh - 30 };
+    const fit = (x0) => {
+      const rw = (HERO_BOX.x1 - x0) * unit;
+      const rh = (HERO_BOX.y1 - HERO_BOX.y0) * unit;
+      const S = Math.max(0.2, Math.min((A.r - A.l) / rw, (A.b - A.t) / rh));
+      const left = A.l + Math.max(0, (A.r - A.l - rw * S) / 2);
+      const top = A.t + Math.max(0, (A.b - A.t - rh * S) / 2);
+      return { S, sx: (u) => left + (u - x0) * unit * S, sy: (v) => top + (v - HERO_BOX.y0) * unit * S };
+    };
+    let f = fit(HERO_BOX.x0);
+    const c = HERO_BOX.client;
+    const box = { l: f.sx(c[0]) - 18, r: f.sx(c[2]) + 18, t: f.sy(c[1]) - 14, b: f.sy(c[3]) + 14 };
+    if (box.l < 16 || texts.some((t) => t.l < box.r && t.r > box.l && t.t < box.b && t.b > box.t)) f = fit(HERO_BOX.xAll);
+    const tx = f.sx(0) - cx - f.S * (ox + (0 - VB.x) * unit - w / 2);
+    const ty = f.sy(0) - cy - f.S * (oy + (0 - VB.y) * unit - h / 2);
+    root.style.setProperty('--hero-tf', 'translate(' + tx.toFixed(1) + 'px, ' + ty.toFixed(1) + 'px) scale(' + f.S.toFixed(4) + ')');
+    root.style.setProperty('--hero-left', f.sx(HERO_BOX.xAll).toFixed(0) + 'px');
+    if (ptags) ptags.querySelectorAll('a').forEach((a) => {
+      const [u, v] = a.dataset.at.split(',').map(Number);
+      a.style.left = f.sx(u).toFixed(1) + 'px';
+      a.style.top = f.sy(v).toFixed(1) + 'px';
+    });
+  }
+
   const lines = Array.from(document.querySelectorAll('.scene .r'));
   lines.forEach((el) => { el._scene = el.closest('.scene'); });
 
@@ -772,6 +831,62 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     });
   }
 
+  /* ---------- The hero plays one thing at a time ---------- */
+  // Once the drawing is down, the hero is still except for one thing: a request makes its whole journey through the
+  // runtime environment, or the Agent Team's story moves on by one beat (a message, the job over SSH, its result, the
+  // wake-up); then everything rests for HERO_REST and the other kind takes its turn. gen.py writes the windows
+  // (data-hero-*: each request's window in its loop and how long the journey takes; data-fx-beats: the story's
+  // beats). The loops only run while their class is on <html> (site.css: .hero-req, .hero-team).
+  const HERO_REST = 5500;
+  const heroPlay = { timer: 0, n: 0, req: 0, beat: 0, on: false };
+  const heroBeats = drawing ? (drawing.getAttribute('data-fx-beats') || '').split(';').filter(Boolean).map((b) => b.split(',').map(Number)) : [];
+  const heroReq = drawing ? { every: parseFloat(drawing.getAttribute('data-hero-every') || '0') * 1000,
+    n: parseInt(drawing.getAttribute('data-hero-n') || '0', 10), run: parseFloat(drawing.getAttribute('data-hero-run') || '0') * 1000 } : { n: 0 };
+  function heroStop() {
+    window.clearTimeout(heroPlay.timer);
+    heroPlay.on = false;
+    root.classList.remove('hero-req', 'hero-team');
+  }
+  function heroNext() {
+    if (!heroPlay.on) return;
+    root.classList.remove('hero-req', 'hero-team');
+    if (root.getAttribute('data-scene') !== 'hero' || reduced || document.hidden) { heroPlay.on = false; return; }
+    const team = heroPlay.n % 2 === 1 && heroBeats.length;
+    heroPlay.n += 1;
+    let ms = 0;
+    if (team) {
+      const [a, b] = heroBeats[heroPlay.beat % heroBeats.length];
+      heroPlay.beat += 1;
+      seekLoop(drawing, '.g-team', a * 1000);
+      root.classList.add('hero-team');
+      ms = (b - a) * 1000;
+    } else if (heroReq.n) {
+      seekLoop(drawing, '.cl-hero', (heroPlay.req % heroReq.n) * heroReq.every);
+      heroPlay.req += 1;
+      root.classList.add('hero-req');
+      ms = heroReq.run;
+    }
+    wakeShakes();
+    heroPlay.timer = window.setTimeout(() => {
+      root.classList.remove('hero-req', 'hero-team');
+      heroPlay.timer = window.setTimeout(heroNext, HERO_REST);
+    }, ms);
+  }
+  // (ms: the first thing starts this long after the hero has come to rest)
+  function heroStart(ms) {
+    heroStop();
+    if (!drawing || reduced || getComputedStyle(drawing.parentNode).display === 'none') return;
+    heroPlay.on = true;
+    // at rest: the story before its first message, the stream before its first request
+    seekLoop(drawing, '.g-team', 0);
+    seekLoop(drawing, '.cl-hero', 0);
+    heroPlay.timer = window.setTimeout(heroNext, ms);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) heroStop();
+    else if (root.getAttribute('data-scene') === 'hero' && root.classList.contains('settled')) heroStart(1500);
+  });
+
   /* ---------- The vibration: a card shakes when it sends and the moment the beam reaches it ---------- */
   // Not an animation: each frame, while the loop runs, the loop's own clock (the currentTime of one of its CSS
   // animations) says whether a card is inside one of its vibrations (data-shake, written by gen.py), and the card's
@@ -845,7 +960,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   function wakeShakes() { if (!shakeRaf) shakeRaf = window.requestAnimationFrame(shakeTick); }
   if (drawing) {
     // the backdrop: in the hero and chapter 04, not while restartStory fades the moving parts (the loop is jumping)
-    shakeSet(drawing, () => /^(hero|w4)$/.test(root.getAttribute('data-scene') || '') && !root.classList.contains('fx-reset'),
+    shakeSet(drawing, () => (root.getAttribute('data-scene') === 'w4' || root.classList.contains('hero-team')) && !root.classList.contains('fx-reset'),
       () => (root.getAttribute('data-scene') === 'w4' ? 'w4' : 'hero'));
   }
   if (teamMini) shakeSet(teamMini.svg, () => teamMini.box.classList.contains('run'), () => 'mini');
@@ -901,7 +1016,10 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     if (!instant && prev) redraw(scene);
     if (prev && scene === scenes[0]) drawHero(700);   // (a page opened on another scene: drawn on its first visit to the hero)
     if (prev && scene.dataset.scene === 'w4') restartStory();
-    if (prev && /^(w[123]|hero)$/.test(scene.dataset.scene)) restartChapter(scene.dataset.scene);
+    if (prev && /^w[123]$/.test(scene.dataset.scene)) restartChapter(scene.dataset.scene);
+    // the hero's one-thing-at-a-time play stops when the hero is left and starts over when it is back
+    if (prev === scenes[0]) heroStop();
+    if (prev && scene === scenes[0] && root.classList.contains('settled')) heroStart(2200);
     swapChapter(prev, instant);
   }
 
@@ -1234,6 +1352,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     sizeMiniLabels();
     sizeBackdropLabels();
     alignWork();
+    frameHero();
     if (active && (anchor || switched)) scrollToScene(active);
     if (paged && pcam && pcam.shown && active && !switched) camTo(active, true);
     thumbPlaced = false;
@@ -1404,7 +1523,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   // can be neither scrolled, stepped through nor tabbed into.
   const film = document.getElementById('film');
   const filmVideo = film && film.querySelector('video');
-  const filmBehind = [nav, document.getElementById('main'), document.querySelector('.skip')].filter(Boolean);
+  const filmBehind = [nav, document.getElementById('main'), document.querySelector('.skip'), document.querySelector('.ptags')].filter(Boolean);
   let filmOpen = false;
   let filmFrom = null;
   let filmTimer = 0;
@@ -1670,7 +1789,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   root.setAttribute('data-dir', 'down');
   applyLang(lang());
   if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => { heads.forEach((x) => { x.kerned = false; }); kernHeads(); });
+    document.fonts.ready.then(() => { heads.forEach((x) => { x.kerned = false; }); kernHeads(); frameHero(); });
   }
   if (pinned) scenes.forEach((s) => s.classList.add('is-in'));
   const start = sceneOf(hashId());
@@ -1697,7 +1816,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     root.classList.remove('intro-on');
   }
   // while the intro runs, the page behind the curtain can be neither clicked nor tabbed into
-  const behind = [nav, document.getElementById('main'), document.querySelector('.skip')].filter(Boolean);
+  const behind = [nav, document.getElementById('main'), document.querySelector('.skip'), document.querySelector('.ptags')].filter(Boolean);
   const setBehind = (on) => behind.forEach((el) => { el.inert = on; });
   /* ---------- First paint: the drawing is sketched in, as if drawn live ---------- */
   // Every part of the drawing is drawn at the same time, the platform and the Agent Team alike (owner: not left to
@@ -1708,7 +1827,23 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   // after that (settleLater).
   const PEN_SPEED = 240;        // drawing units per second along a stroke
   const PEN_EASE = 'cubic-bezier(.4, .1, .35, 1)';
-  function sketch(svg, t0) {
+  // ordered (the hero): the eye can follow. The four products are drawn one after another, North Agent Cloud, North
+  // Sandbox, North Firewall, then the Agent Team (several pens within each), then the lines that join them, and last
+  // the threads from the agents to the three products they built: under 5 s in all. Each product's name (.ptags a)
+  // comes in as the frame it stands on closes.
+  const PHASE = { nac: 0, sbx: 0.7, fw: 1.35, team: 1.95, link: 3.2, built: 3.85 };
+  function phaseOf(el) {
+    const grp = el.closest('.grp');
+    const c = grp ? grp.classList : null;
+    if (!c) return 'nac';
+    if (c.contains('g-built')) return 'built';
+    if (c.contains('g-team')) return 'team';
+    if (el.classList.contains('e') && !el.classList.contains('bound')) return 'link';
+    if (c.contains('g-fw')) return 'fw';
+    if (c.contains('g-sbx') && !c.contains('g-nac')) return 'sbx';
+    return 'nac';
+  }
+  function sketch(svg, t0, ordered) {
     if (!svg || !svg.getBoundingClientRect().width) return 0;
     // (the product panels' frames are .draw too, from gen.py, so they are hidden from the very first paint)
     const items = Array.from(svg.querySelectorAll('.draw')).map((el, i) => {
@@ -1717,13 +1852,23 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
       const inner = el.classList.contains('slot') || el.classList.contains('agent') ||
         (!el.classList.contains('tint') && Boolean(grp && grp.querySelector('.tint')) && !grp.classList.contains('g-team'));
       const tier = el.classList.contains('bound') ? 0 : el.classList.contains('e') ? 1.0 : inner ? 0.6 : 0.15;
-      return { el, b, len: el.getTotalLength(), tier, jitter: ((i * 37) % 11) / 11 * 0.22 };
+      return { el, b, len: el.getTotalLength(), tier, jitter: ((i * 37) % 11) / 11 * 0.22, phase: phaseOf(el) };
     });
     let end = t0;
     items.forEach((it) => {
       const bound = it.el.classList.contains('bound');
-      const dur = bound ? 3.2 : Math.min(2.2, Math.max(1.2, it.len / PEN_SPEED));
-      const t = t0 + it.tier + it.jitter;
+      let dur = bound ? 3.2 : Math.min(2.2, Math.max(1.2, it.len / PEN_SPEED));
+      let t = t0 + it.tier + it.jitter;
+      if (ordered) {
+        const inTeam = it.phase === 'team';
+        dur = bound ? 1.0 : Math.min(0.85, Math.max(0.5, it.len / (PEN_SPEED * 2)));
+        // within a product: its frame first, what stands in it a moment later; the team's own wires with its boxes
+        const tier = bound || it.phase === 'link' || it.phase === 'built' ? 0
+          : inTeam ? (it.el.classList.contains('e') ? 0.3 : it.el.classList.contains('tint') ? 0.05 : 0.22)
+            : it.el.classList.contains('tint') ? 0 : it.tier >= 0.6 ? 0.25 : 0.08;
+        t = t0 + PHASE[it.phase] + tier + it.jitter * (it.phase === 'built' ? 1.2 : 0.8);
+      }
+      it.t = t;
       it.end = t + dur;
       it.el.style.setProperty('--dd', t.toFixed(3) + 's');
       it.el.style.setProperty('--dur', dur.toFixed(3) + 's');
@@ -1747,6 +1892,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     const boxes = items.filter((it) => !it.el.classList.contains('e') || it.el.classList.contains('bound'));
     svg.querySelectorAll('.lbl, .dash:not(.bound), .span, .leds, .acct-name').forEach((el) => {
       let when = t0 + 1.8;
+      if (ordered && el.classList.contains('e')) when = t0 + PHASE[phaseOf(el) === 'team' ? 'team' : 'link'] + (phaseOf(el) === 'team' ? 0.5 : 0.2);
       if (!el.classList.contains('e')) {
         const b = el.getBBox();
         const cx = b.x + b.width / 2;
@@ -1757,9 +1903,18 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
           if (cx < r.x || cx > r.x + r.width || cy < r.y || cy > r.y + r.height) return;
           if (!best || r.width * r.height < best.b.width * best.b.height) best = it;
         });
-        if (best) when = best.el.classList.contains('bound') ? t0 + 1.5 : best.end;
+        if (best) when = best.el.classList.contains('bound') ? (ordered ? best.end : t0 + 1.5) : best.end;
       }
       el.style.setProperty('--ld', (when + 0.05).toFixed(3) + 's');
+    });
+    // each thread's dot lands as its thread arrives; each product's name comes in as its frame closes
+    svg.querySelectorAll('.bdot').forEach((dot) => {
+      const it = items.find((x) => x.el === dot.previousElementSibling);
+      if (it) dot.style.setProperty('--ld', (it.end - 0.1).toFixed(3) + 's');
+    });
+    if (ordered && ptags) ptags.querySelectorAll('a').forEach((a) => {
+      const it = items.find((x) => x.el === svg.querySelector(a.dataset.frame));
+      a.style.setProperty('--td', (it ? Math.max(0, it.end - 0.12) : t0 + 1).toFixed(3) + 's');
     });
     return end;
   }
@@ -1775,12 +1930,13 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     window.setTimeout(() => {
       root.classList.add('settled');
       document.querySelectorAll('.diagram .pen').forEach((p) => p.remove());
+      if (ptags) ptags.querySelectorAll('a').forEach((a) => a.style.removeProperty('--td'));
+      if (root.getAttribute('data-scene') === 'hero') heroStart(1200);
     }, wait);
   }
-  function sketchAll(t0) {
+  function sketchAll(t0, ordered) {
     if (!canAnimate()) return;
-    const heroMini = minis.find((m) => m.box.dataset.hl === 'hero');
-    penEnd = Math.max(sketch(drawing, t0), heroMini ? sketch(heroMini.svg, t0) : 0);
+    penEnd = sketch(drawing, t0, ordered);
   }
   function toTop() {
     if (window.scrollY <= 2 && active === scenes[0]) return;
@@ -1796,7 +1952,10 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     introEl.remove();
     const alt = document.querySelector('#name .alt');
     if (alt && canAnimate()) alt.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, easing: EASE });
-    settleLater(0);
+    // the name has landed: now the drawing is drawn, product by product (on narrow screens the film's cover is)
+    sketchAll(0.1, true);
+    markDrawn();
+    settleLater(600);
     drawHero(0);
   }
   if (reduced) {
@@ -1806,18 +1965,17 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     root.classList.add('intro-run');
     setBehind(true);
     first.classList.add('is-in');
-    // the rest of the hero arrives while the name moves (the hero shows no drawing: nothing is sketched; it is
-    // simply there by the time chapter 01 comes)
-    const onMove = () => { markDrawn(); root.classList.add('intro-out'); };
+    // the rest of the hero arrives while the name moves; the drawing waits for the name to land (introDone)
+    const onMove = () => { root.classList.add('intro-out'); };
     playTypeIntro(onMove, introDone);
   } else {
     if (pinned) zoomIn(first, 0.96, 150, 1200);
     else reveal(first, true, 150);
-    // a page opened on a chapter sketches its drawing in; the hero has none to sketch
-    const sketched = first !== scenes[0];
-    if (sketched) sketchAll(0.15);
-    else drawHero(pinned ? 900 : 700);
-    window.requestAnimationFrame(() => window.requestAnimationFrame(() => { markDrawn(); settleLater(sketched ? 3600 : 0); }));
+    // the hero draws its products one after another; a page opened on a chapter sketches the drawing in at once
+    const hero = first === scenes[0];
+    sketchAll(hero ? 0.5 : 0.15, hero);
+    if (hero) drawHero(pinned ? 900 : 700);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => { markDrawn(); settleLater(hero ? 600 : 3600); }));
   }
   exitFade();
 })();
