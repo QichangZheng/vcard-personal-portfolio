@@ -1414,7 +1414,10 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     filmFrom = from || null;
     window.clearTimeout(filmTimer);
     openMenu(false);
-    if (!filmVideo.getAttribute('src')) filmVideo.setAttribute('src', filmVideo.dataset.src);
+    if (!filmVideo.getAttribute('src')) {
+      filmVideo.setAttribute('poster', filmVideo.dataset.poster);   // (asked for only now: a hidden video would fetch it on load)
+      filmVideo.setAttribute('src', filmVideo.dataset.src);
+    }
     film.hidden = false;
     root.classList.add('film-open');
     filmBehind.forEach((el) => { el.inert = true; });
