@@ -459,7 +459,8 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     });
   }
 
-  // the wide drawing's labels: about 14 px on screen for a box's name at any window width, in drawing units and per
+  // the wide drawing's labels: up to 16.5 px on screen for a box's name in its chapter (the hero shows the whole drawing
+  // a little smaller, and its labels with it: as large as their boxes allow), in drawing units and per
   // panel (chapters 01-03 see the runtime environment at 1.3x, chapter 04 the team panel at 1.175x, 1x below 1280 px:
   // site.css), up to the size the phone crops showed still fits the boxes
   function sizeBackdropLabels() {
@@ -471,8 +472,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     const unit = Math.min(w / 916, h / 768);
     const lbl = (zoom, cap) => Math.min(cap, Math.max(13, 14 / (unit * zoom))).toFixed(1) + 'px';
     drawing.style.setProperty('--lbl', lbl(1.3, 17));
-    const team = drawing.querySelector('.g-team');
-    if (team) team.style.setProperty('--lbl', lbl(window.innerWidth >= 1280 ? 1.175 : 1, 18));
+    drawing.querySelectorAll('.g-team').forEach((g) => g.style.setProperty('--lbl', lbl(window.innerWidth >= 1280 ? 1.175 : 1, 18)));
   }
 
   /* ---------- The hero (wide screens): the whole drawing beside the text, the four products named on it ---------- */
@@ -483,7 +483,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   // place of each product's name (.ptags a: data-at, in the drawing's units).
   const ptags = document.querySelector('.ptags');
   const VB = { x: -4, y: 4, w: 916, h: 768 };          // the drawing's viewBox (gen.py)
-  const HERO_BOX = { x0: 122, xAll: 4, x1: 904, y0: 12, y1: 766, client: [6, 180, 98, 220] };
+  const HERO_BOX = { x0: 98, x1: 906, y0: 52, y1: 768 };   // what the first screen shows: the shut blocks, the road, the threads
   function frameHero() {
     if (!drawing || getComputedStyle(drawing.parentNode).display === 'none') return;
     const cs = getComputedStyle(drawing);
@@ -519,20 +519,62 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
       const top = A.t + Math.max(0, (A.b - A.t - rh * S) / 2);
       return { S, sx: (u) => left + (u - x0) * unit * S, sy: (v) => top + (v - HERO_BOX.y0) * unit * S };
     };
-    let f = fit(HERO_BOX.x0);
-    const c = HERO_BOX.client;
-    const box = { l: f.sx(c[0]) - 18, r: f.sx(c[2]) + 18, t: f.sy(c[1]) - 14, b: f.sy(c[3]) + 14 };
-    if (box.l < 16 || texts.some((t) => t.l < box.r && t.r > box.l && t.t < box.b && t.b > box.t)) f = fit(HERO_BOX.xAll);
+    const f = fit(HERO_BOX.x0);
     const tx = f.sx(0) - cx - f.S * (ox + (0 - VB.x) * unit - w / 2);
     const ty = f.sy(0) - cy - f.S * (oy + (0 - VB.y) * unit - h / 2);
     root.style.setProperty('--hero-tf', 'translate(' + tx.toFixed(1) + 'px, ' + ty.toFixed(1) + 'px) scale(' + f.S.toFixed(4) + ')');
-    root.style.setProperty('--hero-left', f.sx(HERO_BOX.xAll).toFixed(0) + 'px');
+    root.style.setProperty('--hero-left', f.sx(HERO_BOX.x0).toFixed(0) + 'px');
+    // the products' names: 15 px or more on the first screen (as far as the narrowest frame holds its name), in the
+    // drawing's units; each block's hit area lies over its frame
+    drawing.parentNode.style.setProperty('--pname', Math.min(20, Math.max(14, 15.6 / (unit * f.S))).toFixed(1) + 'px');
     if (ptags) ptags.querySelectorAll('a').forEach((a) => {
-      const [u, v] = a.dataset.at.split(',').map(Number);
-      a.style.left = f.sx(u).toFixed(1) + 'px';
-      a.style.top = f.sy(v).toFixed(1) + 'px';
+      const [x, y, w2, h2] = a.dataset.box.split(',').map(Number);
+      a.style.left = f.sx(x).toFixed(1) + 'px';
+      a.style.top = (f.sy(y) - 12).toFixed(1) + 'px';
+      a.style.width = (w2 * unit * f.S).toFixed(1) + 'px';
+      a.style.height = (h2 * unit * f.S + 12).toFixed(1) + 'px';
     });
   }
+  // In a chapter the shut blocks around the open one are dimmed and may leave the screen through its soft edges. A
+  // name caught by an edge would be half a word: such a block goes without its name (.cut-*). Where the names will
+  // stand is read from a still copy of them that takes each scene's framing at once (the drawing itself is on its way).
+  let nameProbe = null;
+  let edgeProbe = null;
+  if (drawing) {
+    nameProbe = document.createElementNS(drawing.namespaceURI, 'svg');
+    nameProbe.setAttribute('class', 'diagram probe');
+    nameProbe.setAttribute('viewBox', drawing.getAttribute('viewBox'));
+    nameProbe.setAttribute('preserveAspectRatio', drawing.getAttribute('preserveAspectRatio'));
+    drawing.querySelectorAll('.grp.pn').forEach((g) => nameProbe.appendChild(g.cloneNode(true)));
+    drawing.parentNode.appendChild(nameProbe);
+    edgeProbe = document.createElement('i');
+    edgeProbe.className = 'edge-probe';
+    drawing.parentNode.appendChild(edgeProbe);
+  }
+  function trimNames() {
+    if (!nameProbe) return;
+    const scene = root.getAttribute('data-scene') || '';
+    const own = GROUP[scene];
+    const vw = nameProbe.parentNode.clientWidth;
+    const vh = nameProbe.parentNode.clientHeight;
+    const bottom = /^w[123]$/.test(scene) ? 112 : 6;
+    nameProbe.querySelectorAll('.grp.pn').forEach((g) => {
+      const key = Array.from(g.classList).find((c) => /^g-/.test(c));
+      const r = g.querySelector('text').getBoundingClientRect();
+      const cut = Boolean(own) && key !== own && r.width > 0 && r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw &&
+        (r.left < edgeProbe.offsetWidth || r.right > vw - 30 || r.top < 122 || r.bottom > vh - bottom);
+      root.classList.toggle('cut-' + key.slice(2), cut);
+    });
+  }
+
+  // a block under the pointer or the keyboard's focus goes blue (site.css .hl-*)
+  if (ptags) ptags.querySelectorAll('a').forEach((a) => {
+    const on = () => root.classList.add('hl-' + a.dataset.g);
+    const off = () => root.classList.remove('hl-' + a.dataset.g);
+    a.addEventListener('pointerenter', on); a.addEventListener('pointerleave', off);
+    a.addEventListener('focus', on); a.addEventListener('blur', off);
+    a.addEventListener('click', off);
+  });
 
   const lines = Array.from(document.querySelectorAll('.scene .r'));
   lines.forEach((el) => { el._scene = el.closest('.scene'); });
@@ -784,19 +826,31 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     swapTimer = window.setTimeout(() => { paintChapter(); chapter.classList.remove('swap'); }, 260);
   }
 
-  /* ---------- The highlighted part of the drawing redraws itself once per chapter ---------- */
+  /* ---------- A chapter opens its block: the inner structure is drawn in ---------- */
+  // Arriving at a chapter, its block opens (site.css brings its detail .dt in): as the camera lands, each box and line
+  // of the detail is traced by a pen, the frames first, then what stands in them, the lines last, and every label
+  // comes up as its own box closes. Leaving, the block shuts again (a fade).
   function redraw(scene) {
     const g = GROUP[scene.dataset.scene];
     if (!g || !drawing || !canAnimate() || !root.classList.contains('settled')) return;
-    drawing.querySelectorAll('.' + g + ' .e.draw:not(.bound)').forEach((p, i) => {
-      p.getAnimations().forEach((a) => a.cancel());
-      p.animate(
-        [
-          { strokeDasharray: '1 1', strokeDashoffset: 1 },
-          { strokeDasharray: '1 1', strokeDashoffset: 0 },
-        ],
-        { duration: 700, delay: 1000 + Math.min(i, 6) * 60, easing: EASE, fill: 'backwards' }   // once the camera has landed
-      );
+    const t0 = 620;                                      // the camera is most of the way there
+    drawing.querySelectorAll('.grp.dt.' + g).forEach((grp, gi) => {
+      const wire = !grp.querySelector('.n');             // a group of lines only: with the last ones
+      const base = t0 + (wire ? 520 : Math.min(gi, 8) * 55);
+      let last = base;
+      grp.querySelectorAll('.draw').forEach((p, i) => {
+        p.getAnimations().forEach((a) => a.cancel());
+        const delay = base + Math.min(i, 14) * 28;
+        last = Math.max(last, delay);
+        p.animate(
+          [{ strokeDasharray: '1 1', strokeDashoffset: 1 }, { strokeDasharray: '1 1', strokeDashoffset: 0 }],
+          { duration: 620, delay, easing: EASE, fill: 'backwards' }
+        );
+      });
+      grp.querySelectorAll('.lbl, .dash:not(.draw), .leds, .acct-name, .span').forEach((el) => {
+        el.getAnimations().forEach((a) => { if (!a.effect || !a.effect.target.classList.contains('fx')) a.cancel(); });
+        el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, delay: Math.min(last, base + 260) + 300, easing: 'ease-out', fill: 'backwards' });
+      });
     });
   }
 
@@ -831,44 +885,41 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     });
   }
 
-  /* ---------- The hero plays one thing at a time ---------- */
-  // Once the drawing is down, the hero is still except for one thing: a request makes its whole journey through the
-  // runtime environment, or the Agent Team's story moves on by one beat (a message, the job over SSH, its result, the
-  // wake-up); then everything rests for HERO_REST and the other kind takes its turn. gen.py writes the windows
-  // (data-hero-*: each request's window in its loop and how long the journey takes; data-fx-beats: the story's
-  // beats). The loops only run while their class is on <html> (site.css: .hero-req, .hero-team).
+  /* ---------- The first screen plays one thing at a time ---------- */
+  // Once the drawing is down the first screen is still except for one thing: a request runs the road through the
+  // three blocks and out to the Internet, or a bead leaves the cloud along one of the three threads and its product
+  // answers; then everything rests for HERO_REST and the other kind takes its turn. gen.py writes how long each takes
+  // (data-hero-run; data-built-every / -n / -run: one window of the threads' loop each). The loops only run while
+  // their class is on <html> (site.css: .hero-req, .hero-built).
   const HERO_REST = 5500;
-  const heroPlay = { timer: 0, n: 0, req: 0, beat: 0, on: false };
-  const heroBeats = drawing ? (drawing.getAttribute('data-fx-beats') || '').split(';').filter(Boolean).map((b) => b.split(',').map(Number)) : [];
-  const heroReq = drawing ? { every: parseFloat(drawing.getAttribute('data-hero-every') || '0') * 1000,
-    n: parseInt(drawing.getAttribute('data-hero-n') || '0', 10), run: parseFloat(drawing.getAttribute('data-hero-run') || '0') * 1000 } : { n: 0 };
+  const heroPlay = { timer: 0, n: 0, built: 0, on: false };
+  const num = (name) => (drawing ? parseFloat(drawing.getAttribute(name) || '0') : 0);
+  const heroReq = { run: num('data-hero-run') * 1000 };
+  const heroBuilt = { every: num('data-built-every') * 1000, n: num('data-built-n'), run: num('data-built-run') * 1000 };
   function heroStop() {
     window.clearTimeout(heroPlay.timer);
     heroPlay.on = false;
-    root.classList.remove('hero-req', 'hero-team');
+    root.classList.remove('hero-req', 'hero-built');
   }
   function heroNext() {
     if (!heroPlay.on) return;
-    root.classList.remove('hero-req', 'hero-team');
+    root.classList.remove('hero-req', 'hero-built');
     if (root.getAttribute('data-scene') !== 'hero' || reduced || document.hidden) { heroPlay.on = false; return; }
-    const team = heroPlay.n % 2 === 1 && heroBeats.length;
+    const built = heroPlay.n % 2 === 1 && heroBuilt.n;
     heroPlay.n += 1;
     let ms = 0;
-    if (team) {
-      const [a, b] = heroBeats[heroPlay.beat % heroBeats.length];
-      heroPlay.beat += 1;
-      seekLoop(drawing, '.g-team', a * 1000);
-      root.classList.add('hero-team');
-      ms = (b - a) * 1000;
-    } else if (heroReq.n) {
-      seekLoop(drawing, '.cl-hero', (heroPlay.req % heroReq.n) * heroReq.every);
-      heroPlay.req += 1;
+    if (built) {
+      seekLoop(drawing, '.cl-built', (heroPlay.built % heroBuilt.n) * heroBuilt.every);
+      heroPlay.built += 1;
+      root.classList.add('hero-built');
+      ms = heroBuilt.run;
+    } else {
+      seekLoop(drawing, '.cl-hero', 0);
       root.classList.add('hero-req');
       ms = heroReq.run;
     }
-    wakeShakes();
     heroPlay.timer = window.setTimeout(() => {
-      root.classList.remove('hero-req', 'hero-team');
+      root.classList.remove('hero-req', 'hero-built');
       heroPlay.timer = window.setTimeout(heroNext, HERO_REST);
     }, ms);
   }
@@ -877,8 +928,8 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     heroStop();
     if (!drawing || reduced || getComputedStyle(drawing.parentNode).display === 'none') return;
     heroPlay.on = true;
-    // at rest: the story before its first message, the stream before its first request
-    seekLoop(drawing, '.g-team', 0);
+    // at rest: nothing on the road, nothing on the threads
+    seekLoop(drawing, '.cl-built', 0);
     seekLoop(drawing, '.cl-hero', 0);
     heroPlay.timer = window.setTimeout(heroNext, ms);
   }
@@ -960,7 +1011,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   function wakeShakes() { if (!shakeRaf) shakeRaf = window.requestAnimationFrame(shakeTick); }
   if (drawing) {
     // the backdrop: in the hero and chapter 04, not while restartStory fades the moving parts (the loop is jumping)
-    shakeSet(drawing, () => (root.getAttribute('data-scene') === 'w4' || root.classList.contains('hero-team')) && !root.classList.contains('fx-reset'),
+    shakeSet(drawing, () => root.getAttribute('data-scene') === 'w4' && !root.classList.contains('fx-reset'),
       () => (root.getAttribute('data-scene') === 'w4' ? 'w4' : 'hero'));
   }
   if (teamMini) shakeSet(teamMini.svg, () => teamMini.box.classList.contains('run'), () => 'mini');
@@ -981,6 +1032,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     // an invisible drawing takes its new framing at once and only fades in
     if (drawing) root.classList.toggle('dg-cut', +getComputedStyle(drawing).opacity < 0.05);
     root.setAttribute('data-scene', scene.dataset.scene);
+    trimNames();
     wakeShakes();
     const target = scene.dataset.nav || '';
     navLinks.forEach((a) => {
@@ -1353,6 +1405,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     sizeBackdropLabels();
     alignWork();
     frameHero();
+    trimNames();
     if (active && (anchor || switched)) scrollToScene(active);
     if (paged && pcam && pcam.shown && active && !switched) camTo(active, true);
     thumbPlaced = false;
@@ -1827,22 +1880,22 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   // after that (settleLater).
   const PEN_SPEED = 240;        // drawing units per second along a stroke
   const PEN_EASE = 'cubic-bezier(.4, .1, .35, 1)';
-  // ordered (the hero): the eye can follow. The four products are drawn one after another, North Agent Cloud, North
-  // Sandbox, North Firewall, then the Agent Team (several pens within each), then the lines that join them, and last
-  // the threads from the agents to the three products they built: under 5 s in all. Each product's name (.ptags a)
-  // comes in as the frame it stands on closes.
-  const PHASE = { nac: 0, sbx: 0.7, fw: 1.35, team: 1.95, link: 3.2, built: 3.85 };
+  // ordered (the first screen): the eye can follow, and it is the side index's own order. North Agent Cloud, North
+  // Sandbox and North Firewall are drawn one after another along the road, which ends at the Internet; then the Agent
+  // Team (its frame, the person and the cloud); last the three threads from the cloud to what the team built: under
+  // 5 s in all. Each block's name comes in as its frame closes, and its number in the side index lights for a moment.
+  const PHASE = { nac: 0, sbx: 0.85, fw: 1.7, team: 2.55, built: 3.7 };
   function phaseOf(el) {
     const grp = el.closest('.grp');
     const c = grp ? grp.classList : null;
     if (!c) return 'nac';
     if (c.contains('g-built')) return 'built';
     if (c.contains('g-team')) return 'team';
-    if (el.classList.contains('e') && !el.classList.contains('bound')) return 'link';
     if (c.contains('g-fw')) return 'fw';
     if (c.contains('g-sbx') && !c.contains('g-nac')) return 'sbx';
     return 'nac';
   }
+  let pings = [];
   function sketch(svg, t0, ordered) {
     if (!svg || !svg.getBoundingClientRect().width) return 0;
     // (the product panels' frames are .draw too, from gen.py, so they are hidden from the very first paint)
@@ -1860,13 +1913,10 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
       let dur = bound ? 3.2 : Math.min(2.2, Math.max(1.2, it.len / PEN_SPEED));
       let t = t0 + it.tier + it.jitter;
       if (ordered) {
-        const inTeam = it.phase === 'team';
-        dur = bound ? 1.0 : Math.min(0.85, Math.max(0.5, it.len / (PEN_SPEED * 2)));
-        // within a product: its frame first, what stands in it a moment later; the team's own wires with its boxes
-        const tier = bound || it.phase === 'link' || it.phase === 'built' ? 0
-          : inTeam ? (it.el.classList.contains('e') ? 0.3 : it.el.classList.contains('tint') ? 0.05 : 0.22)
-            : it.el.classList.contains('tint') ? 0 : it.tier >= 0.6 ? 0.25 : 0.08;
-        t = t0 + PHASE[it.phase] + tier + it.jitter * (it.phase === 'built' ? 1.2 : 0.8);
+        dur = bound ? 0.8 : it.phase === 'built' ? 0.75 : Math.min(0.7, Math.max(0.45, it.len / (PEN_SPEED * 2)));
+        // within a block: its frame first, then its picture, the road through it last
+        const tier = bound || it.phase === 'built' ? 0 : it.el.classList.contains('e') ? 0.4 : 0.22;
+        t = t0 + PHASE[it.phase] + tier + it.jitter * (it.phase === 'built' ? 1.6 : 0.7);
       }
       it.t = t;
       it.end = t + dur;
@@ -1892,7 +1942,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     const boxes = items.filter((it) => !it.el.classList.contains('e') || it.el.classList.contains('bound'));
     svg.querySelectorAll('.lbl, .dash:not(.bound), .span, .leds, .acct-name').forEach((el) => {
       let when = t0 + 1.8;
-      if (ordered && el.classList.contains('e')) when = t0 + PHASE[phaseOf(el) === 'team' ? 'team' : 'link'] + (phaseOf(el) === 'team' ? 0.5 : 0.2);
+      if (ordered && el.classList.contains('e')) when = t0 + PHASE[phaseOf(el)] + 0.4;
       if (!el.classList.contains('e')) {
         const b = el.getBBox();
         const cx = b.x + b.width / 2;
@@ -1907,14 +1957,20 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
       }
       el.style.setProperty('--ld', (when + 0.05).toFixed(3) + 's');
     });
-    // each thread's dot lands as its thread arrives; each product's name comes in as its frame closes
+    // each thread's dot lands as its thread arrives; a block's name comes in as its frame closes, and so do the person
+    // and the cloud; the side index answers
     svg.querySelectorAll('.bdot').forEach((dot) => {
       const it = items.find((x) => x.el === dot.previousElementSibling);
       if (it) dot.style.setProperty('--ld', (it.end - 0.1).toFixed(3) + 's');
     });
-    if (ordered && ptags) ptags.querySelectorAll('a').forEach((a) => {
-      const it = items.find((x) => x.el === svg.querySelector(a.dataset.frame));
-      a.style.setProperty('--td', (it ? Math.max(0, it.end - 0.12) : t0 + 1).toFixed(3) + 's');
+    pings = [];
+    svg.querySelectorAll('.pname, .fade').forEach((el) => {
+      const key = (Array.from(el.closest('.grp').classList).find((c) => /^g-/.test(c)) || '').slice(2);
+      const it = items.find((x) => x.el === svg.querySelector('.grp.pf.g-' + key + ' .bound'));
+      if (!it) return;
+      el.style.setProperty('--ld', (it.end - (el.classList.contains('fade') ? 0.45 : 0.2)).toFixed(3) + 's');
+      const a = ordered && el.classList.contains('pname') && ptags && ptags.querySelector('a[data-g="' + key + '"]');
+      if (a) pings.push([it.end, a.dataset.go]);
     });
     return end;
   }
@@ -1923,6 +1979,13 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   function markDrawn() {
     drawnAt = window.performance.now();
     root.classList.add('drawn');
+    pings.forEach(([at, id]) => {
+      const a = navLinks.find((x) => x.dataset.go === id);
+      if (!a) return;
+      window.setTimeout(() => a.classList.add('ping'), at * 1000);
+      window.setTimeout(() => a.classList.remove('ping'), at * 1000 + 700);
+    });
+    pings = [];
   }
   // the loops start (settled) only once the last stroke is down
   function settleLater(ms) {
@@ -1930,7 +1993,6 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     window.setTimeout(() => {
       root.classList.add('settled');
       document.querySelectorAll('.diagram .pen').forEach((p) => p.remove());
-      if (ptags) ptags.querySelectorAll('a').forEach((a) => a.style.removeProperty('--td'));
       if (root.getAttribute('data-scene') === 'hero') heroStart(1200);
     }, wait);
   }
