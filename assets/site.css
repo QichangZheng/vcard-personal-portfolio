@@ -270,6 +270,7 @@ html.pinned .chapter { display: none; }
 }
 /* in a chapter the shut blocks around the open one leave the screen softly, never cut by its edge */
 html[data-scene^="w"] .backdrop { --mr1: 28px; }
+html:is([data-scene="w1"], [data-scene="w2"], [data-scene="w3"]) .backdrop { --mr1: 56px; }
 html:is([data-scene="w1"], [data-scene="w2"], [data-scene="w3"]) .backdrop { --mb1: 110px; }
 /* ... and a shut block whose name would be caught by one of those edges goes without it (site.js trimNames) */
 html.cut-nac .backdrop .g-nac.pn, html.cut-sbx .backdrop .g-sbx.pn, html.cut-fw .backdrop .g-fw.pn, html.cut-team .backdrop .g-team.pn { opacity: 0 !important; }
@@ -382,6 +383,14 @@ html[data-scene="hero"] .backdrop { --me0: calc(var(--hero-left, 50vw) - 40px); 
 :is([data-scene="w2"] .backdrop, .mini[data-hl="w2"]) .g-sbx.ic,
 :is([data-scene="w3"] .backdrop, .mini[data-hl="w3"]) .g-fw.ic,
 :is([data-scene="w4"] .backdrop, .mini[data-hl="w4"]) .g-team.ic { opacity: 0; }
+/* shut, a block's picture stands large in the middle of its frame; the two that are part of the detail anyway (the
+   runtime stacks, the sandbox slots: .core) shrink back to their place in it as their block opens (gen.py SHUT gives
+   each its --shut transform and its scale --k, which the line's width is divided by, so the ink stays one weight) */
+.diagram .grp.core { transform: var(--shut); transform-origin: 0 0; transition: opacity .9s var(--ease), transform 1s cubic-bezier(.65, 0, .35, 1); }
+.backdrop .diagram .grp.core .n { stroke-width: calc(1.3px / var(--k, 1)); }
+:is([data-scene="w1"] .backdrop, .mini[data-hl="w1"]) .grp.core.g-nac,
+:is([data-scene="w2"] .backdrop, .mini[data-hl="w2"]) .grp.core.g-sbx { transform: none; --k: 1; }
+.mode-switch .diagram .grp.core { transition: none; }
 /* a block opens quickly (its strokes are then drawn in: site.js redraw) and shuts a little slower */
 .diagram .grp.dt { transition: opacity .5s var(--ease); }
 /* blue belongs to what moves and to the open block */
@@ -418,7 +427,9 @@ html[data-scene="hero"].hl-fw .backdrop .g-fw .pname, html[data-scene="hero"].hl
    24px above the bottom, at 1024-1920px wide (the product panels themselves may leave the frame).
    Chapter 04 (the widest part) is the exception: its whole panel stays in frame with about 50px to spare on the right
    (owner: it sat too close to the edge), at 1.175x, 1x below 1280px (tools/cam4.js). */
-[data-scene="w1"] .backdrop .diagram { transform: translate(24%, -20%) scale(1.3); }
+/* (chapter 01 a little less than the others: its block is the widest, and the shut North Sandbox beside it stays
+   whole on screen; site.js sizes its labels for this scale) */
+[data-scene="w1"] .backdrop .diagram { transform: translate(20.1%, -21.9%) scale(1.22); }
 [data-scene="w2"] .backdrop .diagram { transform: translate(-16%, -26%) scale(1.3); }
 [data-scene="w3"] .backdrop .diagram { transform: translate(-48%, -12%) scale(1.3); }
 /* (when a short window caps the drawing's height, it sits letterboxed in a wider box and the panel would drift in from
@@ -949,21 +960,21 @@ html[data-lang="en"] .mini .diagram .lbl.cap.host { font-size: calc(var(--lbl, 1
 .js.settled .diagram .fx-c3alit { animation-name: fx-c3alit; animation-duration: 7.6s; }
 @keyframes fx-c3alit { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } 43.763% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 47.184% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 60.079% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 67.974% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } }
 .js.settled .diagram .fx-hreq-0 { animation-name: fx-hreq-0; animation-duration: 10s; }
-@keyframes fx-hreq-0 { 0% { stroke-dashoffset: 3.01px; stroke-opacity: 0.13; animation-timing-function: linear; } 3% { stroke-dashoffset: 3.01px; stroke-opacity: 0.13; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); } 69.08% { stroke-dashoffset: -822.99px; stroke-opacity: 0.13; animation-timing-function: step-end; } 69.28% { stroke-dashoffset: 3.01px; stroke-opacity: 0; animation-timing-function: linear; } 100% { stroke-dashoffset: 3.01px; stroke-opacity: 0; animation-timing-function: linear; } }
+@keyframes fx-hreq-0 { 0% { stroke-dashoffset: 3.01px; stroke-opacity: 0.13; animation-timing-function: linear; } 3% { stroke-dashoffset: 3.01px; stroke-opacity: 0.13; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); } 76.862% { stroke-dashoffset: -927.647px; stroke-opacity: 0.13; animation-timing-function: step-end; } 77.062% { stroke-dashoffset: 3.01px; stroke-opacity: 0; animation-timing-function: linear; } 100% { stroke-dashoffset: 3.01px; stroke-opacity: 0; animation-timing-function: linear; } }
 .js.settled .diagram .fx-hreq-1 { animation-name: fx-hreq-1; animation-duration: 10s; }
-@keyframes fx-hreq-1 { 0% { stroke-dashoffset: 27px; stroke-opacity: 0.22; animation-timing-function: linear; } 3% { stroke-dashoffset: 27px; stroke-opacity: 0.22; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); } 69.08% { stroke-dashoffset: -799px; stroke-opacity: 0.22; animation-timing-function: step-end; } 69.28% { stroke-dashoffset: 27px; stroke-opacity: 0; animation-timing-function: linear; } 100% { stroke-dashoffset: 27px; stroke-opacity: 0; animation-timing-function: linear; } }
+@keyframes fx-hreq-1 { 0% { stroke-dashoffset: 27px; stroke-opacity: 0.22; animation-timing-function: linear; } 3% { stroke-dashoffset: 27px; stroke-opacity: 0.22; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); } 76.862% { stroke-dashoffset: -903.657px; stroke-opacity: 0.22; animation-timing-function: step-end; } 77.062% { stroke-dashoffset: 27px; stroke-opacity: 0; animation-timing-function: linear; } 100% { stroke-dashoffset: 27px; stroke-opacity: 0; animation-timing-function: linear; } }
 .js.settled .diagram .fx-hreq-2 { animation-name: fx-hreq-2; animation-duration: 10s; }
-@keyframes fx-hreq-2 { 0% { stroke-dashoffset: 19px; stroke-opacity: 0.3; animation-timing-function: linear; } 3% { stroke-dashoffset: 19px; stroke-opacity: 0.3; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); } 69.08% { stroke-dashoffset: -807px; stroke-opacity: 0.3; animation-timing-function: step-end; } 69.28% { stroke-dashoffset: 19px; stroke-opacity: 0; animation-timing-function: linear; } 100% { stroke-dashoffset: 19px; stroke-opacity: 0; animation-timing-function: linear; } }
+@keyframes fx-hreq-2 { 0% { stroke-dashoffset: 19px; stroke-opacity: 0.3; animation-timing-function: linear; } 3% { stroke-dashoffset: 19px; stroke-opacity: 0.3; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); } 76.862% { stroke-dashoffset: -911.657px; stroke-opacity: 0.3; animation-timing-function: step-end; } 77.062% { stroke-dashoffset: 19px; stroke-opacity: 0; animation-timing-function: linear; } 100% { stroke-dashoffset: 19px; stroke-opacity: 0; animation-timing-function: linear; } }
 .js.settled .diagram .fx-hreq-3 { animation-name: fx-hreq-3; animation-duration: 10s; }
-@keyframes fx-hreq-3 { 0% { stroke-dashoffset: 12px; stroke-opacity: 0.45; animation-timing-function: linear; } 3% { stroke-dashoffset: 12px; stroke-opacity: 0.45; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); } 69.08% { stroke-dashoffset: -814px; stroke-opacity: 0.45; animation-timing-function: step-end; } 69.28% { stroke-dashoffset: 12px; stroke-opacity: 0; animation-timing-function: linear; } 100% { stroke-dashoffset: 12px; stroke-opacity: 0; animation-timing-function: linear; } }
+@keyframes fx-hreq-3 { 0% { stroke-dashoffset: 12px; stroke-opacity: 0.45; animation-timing-function: linear; } 3% { stroke-dashoffset: 12px; stroke-opacity: 0.45; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); } 76.862% { stroke-dashoffset: -918.657px; stroke-opacity: 0.45; animation-timing-function: step-end; } 77.062% { stroke-dashoffset: 12px; stroke-opacity: 0; animation-timing-function: linear; } 100% { stroke-dashoffset: 12px; stroke-opacity: 0; animation-timing-function: linear; } }
 .js.settled .diagram .fx-hreq-4 { animation-name: fx-hreq-4; animation-duration: 10s; }
-@keyframes fx-hreq-4 { 0% { stroke-dashoffset: 3.01px; stroke-opacity: 1; animation-timing-function: linear; } 3% { stroke-dashoffset: 3.01px; stroke-opacity: 1; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); } 69.08% { stroke-dashoffset: -822.99px; stroke-opacity: 1; animation-timing-function: step-end; } 69.28% { stroke-dashoffset: 3.01px; stroke-opacity: 0; animation-timing-function: linear; } 100% { stroke-dashoffset: 3.01px; stroke-opacity: 0; animation-timing-function: linear; } }
+@keyframes fx-hreq-4 { 0% { stroke-dashoffset: 3.01px; stroke-opacity: 1; animation-timing-function: linear; } 3% { stroke-dashoffset: 3.01px; stroke-opacity: 1; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); } 76.862% { stroke-dashoffset: -927.647px; stroke-opacity: 1; animation-timing-function: step-end; } 77.062% { stroke-dashoffset: 3.01px; stroke-opacity: 0; animation-timing-function: linear; } 100% { stroke-dashoffset: 3.01px; stroke-opacity: 0; animation-timing-function: linear; } }
 .js.settled .diagram .fx-hpfnac { animation-name: fx-hpfnac; animation-duration: 10s; }
-@keyframes fx-hpfnac { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } 13.124% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 15.624% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 21.624% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 28.624% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } }
+@keyframes fx-hpfnac { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } 13.718% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 16.218% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 22.218% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 29.218% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } }
 .js.settled .diagram .fx-hpfsbx { animation-name: fx-hpfsbx; animation-duration: 10s; }
-@keyframes fx-hpfsbx { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } 34.307% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 36.807% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 42.807% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 49.807% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } }
+@keyframes fx-hpfsbx { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } 41.095% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 43.595% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 49.595% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 56.595% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } }
 .js.settled .diagram .fx-hpffw { animation-name: fx-hpffw; animation-duration: 10s; }
-@keyframes fx-hpffw { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } 42.954% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 45.454% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 51.454% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 58.454% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } }
+@keyframes fx-hpffw { 0% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } 50.039% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 52.539% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 58.539% { fill-opacity: 1; stroke-opacity: 1; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 65.539% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: cubic-bezier(.4, 0, .2, 1); } 100% { fill-opacity: 0; stroke-opacity: 0; animation-timing-function: linear; } }
 .js.settled .diagram .fx-hb0-0 { animation-name: fx-hb0-0; animation-duration: 18s; }
 @keyframes fx-hb0-0 { 0% { stroke-dashoffset: 3.01px; stroke-opacity: 0.13; animation-timing-function: linear; } 1.667% { stroke-dashoffset: 3.01px; stroke-opacity: 0.13; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); } 16.536% { stroke-dashoffset: -291.4px; stroke-opacity: 0.13; animation-timing-function: step-end; } 16.647% { stroke-dashoffset: 3.01px; stroke-opacity: 0; animation-timing-function: linear; } 100% { stroke-dashoffset: 3.01px; stroke-opacity: 0; animation-timing-function: linear; } }
 .js.settled .diagram .fx-hb0-1 { animation-name: fx-hb0-1; animation-duration: 18s; }
@@ -1031,6 +1042,7 @@ html[data-lang="en"] .mini .diagram .lbl.cap.host { font-size: calc(var(--lbl, 1
 html[data-lang="en"] .backdrop .diagram .lbl.cap.host { font-size: calc(var(--lbl, 13px) * .85); }
 /* a product's name, set into the top edge of its frame (a halo in the paper's colour lets the frame, and any line
    that crosses there, pass behind it); its size comes from site.js (--pname: 15 px or more on the first screen) */
+html[data-lang="zh"] .diagram .lbl.pname { font-family: var(--font-zh); }   /* (the page's own face, as the headings) */
 .backdrop .diagram .lbl.pname, .diagram .lbl.pname {
   text-anchor: start; font-size: var(--pname, 16px); font-weight: 600; letter-spacing: -.005em; fill: var(--ink);
   paint-order: stroke; stroke: var(--bg); stroke-width: 10px; stroke-linejoin: round;
@@ -1237,7 +1249,7 @@ html[data-lang="zh"] .work li { line-height: 1.75; }
 }
 /* the side index answers as each block is drawn on the first screen */
 html.pinned .links a.sub.ping { color: var(--accent); }
-html.pinned .links a.sub { transition: color .5s var(--ease); }
+html.pinned .links a.sub { transition: color .3s var(--ease); }
 .film-cta { margin-top: 22px; }
 .film-btn {
   display: inline-flex; align-items: center; gap: 9px;

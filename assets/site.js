@@ -473,6 +473,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     const lbl = (zoom, cap) => Math.min(cap, Math.max(13, 14 / (unit * zoom))).toFixed(1) + 'px';
     drawing.style.setProperty('--lbl', lbl(1.3, 17));
     drawing.querySelectorAll('.g-team').forEach((g) => g.style.setProperty('--lbl', lbl(window.innerWidth >= 1280 ? 1.175 : 1, 18)));
+    drawing.querySelectorAll('.g-nac').forEach((g) => g.style.setProperty('--lbl', lbl(1.22, 17)));
   }
 
   /* ---------- The hero (wide screens): the whole drawing beside the text, the four products named on it ---------- */
@@ -558,11 +559,12 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     const vw = nameProbe.parentNode.clientWidth;
     const vh = nameProbe.parentNode.clientHeight;
     const bottom = /^w[123]$/.test(scene) ? 112 : 6;
+    const right = /^w[123]$/.test(scene) ? 58 : 30;
     nameProbe.querySelectorAll('.grp.pn').forEach((g) => {
       const key = Array.from(g.classList).find((c) => /^g-/.test(c));
       const r = g.querySelector('text').getBoundingClientRect();
       const cut = Boolean(own) && key !== own && r.width > 0 && r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw &&
-        (r.left < edgeProbe.offsetWidth || r.right > vw - 30 || r.top < 122 || r.bottom > vh - bottom);
+        (r.left < edgeProbe.offsetWidth || r.right > vw - right || r.top < 122 || r.bottom > vh - bottom);
       root.classList.toggle('cut-' + key.slice(2), cut);
     });
   }
@@ -1884,7 +1886,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   // Sandbox and North Firewall are drawn one after another along the road, which ends at the Internet; then the Agent
   // Team (its frame, the person and the cloud); last the three threads from the cloud to what the team built: under
   // 5 s in all. Each block's name comes in as its frame closes, and its number in the side index lights for a moment.
-  const PHASE = { nac: 0, sbx: 0.85, fw: 1.7, team: 2.55, built: 3.7 };
+  const PHASE = { nac: 0, sbx: 0.8, fw: 1.6, team: 2.4, built: 3.5 };
   function phaseOf(el) {
     const grp = el.closest('.grp');
     const c = grp ? grp.classList : null;
@@ -1983,7 +1985,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
       const a = navLinks.find((x) => x.dataset.go === id);
       if (!a) return;
       window.setTimeout(() => a.classList.add('ping'), at * 1000);
-      window.setTimeout(() => a.classList.remove('ping'), at * 1000 + 700);
+      window.setTimeout(() => a.classList.remove('ping'), at * 1000 + 550);
     });
     pings = [];
   }
@@ -1993,6 +1995,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     window.setTimeout(() => {
       root.classList.add('settled');
       document.querySelectorAll('.diagram .pen').forEach((p) => p.remove());
+      navLinks.forEach((a) => a.classList.remove('ping'));   // (the drawing is down: the side index is as the first screen has it)
       if (root.getAttribute('data-scene') === 'hero') heroStart(1200);
     }, wait);
   }
