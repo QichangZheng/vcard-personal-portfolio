@@ -1449,8 +1449,74 @@ html.paged .scene .mini:not(.hero-mini) { visibility: hidden; }
   html.paged .work ul { margin-top: 18px; gap: 8px; }
   html.paged .work li { font-size: 15px; line-height: 1.55; }
   html.paged .work .line { margin-top: 8px; }
-  html.paged .mini:not(.hero-mini) { margin-top: 18px; margin-bottom: 0; max-height: 27svh; }
+  /* (the drawing's box keeps the full width and takes its height from the screen, from what the scene can spare
+     (--mini-h, site.js fitPaged) or from its own shape, whichever is least; the drawing stands in its middle) */
+  html.paged .mini:not(.hero-mini) {
+    margin-top: 18px; margin-bottom: 0; max-height: none; aspect-ratio: auto;
+    height: min(27svh, var(--mini-h, 100svh), calc(100vw * 10 / 16));
+  }
+  html.paged .mini[data-hl="w4"]:not(.pcam) { height: min(27svh, var(--mini-h, 100svh), calc(100vw * 322.5 / 744)); }
   html.paged .exp .col.cv { row-gap: 40px; }
+  /* A scene taller than the screen is set tighter until it fits one screen, so that one swipe always turns the page
+     (site.js fitPaged adds the steps, and gives the drawing its height --mini-h):
+     .fit-1 tighter type and spacing; .fit-2 tighter; .fit-3 tighter still; .fit-4 the drawing goes */
+  html.paged .scene.fit-1:not(.hero) .layer { padding-top: 72px; padding-bottom: 14px; }
+  html.paged .scene.work.fit-1 .layer { padding-top: 100px; padding-bottom: 12px; }
+  html.paged .scene.fit-1 .meta { margin-bottom: 8px; font-size: 13px; }
+  html.paged .scene.fit-1 h3 { font-size: 32px; }
+  html.paged .scene.fit-1 .line { margin-top: 6px; font-size: 17px; line-height: 1.4; }
+  html.paged .scene.fit-1 .mini:not(.hero-mini) { margin-top: 12px; }
+  html.paged .scene.work.fit-1 ul { margin-top: 12px; gap: 6px; }
+  html.paged .scene.work.fit-1 li { font-size: 14px; line-height: 1.5; padding-left: 16px; }
+  html[data-lang="zh"].paged .scene.work.fit-1 li { line-height: 1.55; }
+  html.paged .scene.fit-2 h3 { font-size: 29px; }
+  html.paged .scene.fit-2 .line { font-size: 15.5px; line-height: 1.35; }
+  html.paged .scene.work.fit-2 ul { margin-top: 10px; gap: 5px; }
+  html.paged .scene.work.fit-2 li { font-size: 13px; line-height: 1.45; }
+  html[data-lang="zh"].paged .scene.work.fit-2 li { line-height: 1.5; }
+  html.paged .scene.work.fit-3 .layer { padding-top: 96px; padding-bottom: 8px; }
+  html.paged .scene.fit-3 .meta { margin-bottom: 5px; font-size: 12px; }
+  html.paged .scene.fit-3 h3 { font-size: 26px; }
+  html.paged .scene.fit-3 .line { margin-top: 4px; font-size: 14px; }
+  html.paged .scene.fit-3 .mini:not(.hero-mini) { margin-top: 8px; }
+  html.paged .scene.work.fit-3 ul { margin-top: 8px; gap: 3px; }
+  html.paged .scene.work.fit-3 li { font-size: 12px; line-height: 1.4; padding-left: 14px; }
+  html[data-lang="zh"].paged .scene.work.fit-3 li { line-height: 1.45; }
+  html.paged .scene.fit-4 .mini:not(.hero-mini) { display: none; }
+  /* (the first screen: its drawing gives up a little height) */
+  html.paged .hero.fit-1 .layer { padding-top: 78px; padding-bottom: 14px; }
+  html.paged .hero.fit-1 .hero-mini { max-height: max(110px, calc(100svh - 520px)); margin-bottom: 14px; }
+  html.paged .hero.fit-1 .lede { margin-top: 22px; font-size: 18px; }
+  html.paged .hero.fit-2 h1 { font-size: 40px; }
+  html.paged .hero.fit-2 .hero-mini { max-height: 90px; }
+  /* (about) */
+  html.paged .about.fit-1 .portrait { width: 84px; margin-bottom: 16px; }
+  html.paged .about.fit-1 .portrait img { border-radius: 16px; }
+  html.paged .about.fit-1 .big { font-size: 17px; line-height: 1.5; margin-bottom: 14px; }
+  html.paged .about.fit-1 .stats { margin-top: -4px; margin-bottom: 14px; font-size: 13px; line-height: 1.5; }
+  html.paged .about.fit-1 p:not(.big):not(.stats) { font-size: 14px; line-height: 1.5; }
+  html.paged .about.fit-1 p + p { margin-top: 12px; }
+  html.paged .about.fit-1 .big + .big { margin-top: 0; }
+  html.paged .about.fit-2 .portrait { width: 64px; margin-bottom: 10px; }
+  html.paged .about.fit-2 .big { font-size: 15px; line-height: 1.45; margin-bottom: 10px; }
+  html.paged .about.fit-2 .stats { margin-bottom: 10px; font-size: 12px; }
+  html.paged .about.fit-2 p:not(.big):not(.stats) { font-size: 13px; }
+  /* (experience and education) */
+  html.paged .exp.fit-1 .col.cv { row-gap: 22px; }
+  html.paged .exp.fit-1 .sec { font-size: 26px; }
+  html.paged .exp.fit-1 .sec + .rows { margin-top: 14px; }
+  html.paged .exp.fit-1 .row { padding: 9px 0; font-size: 15px; line-height: 1.45; }
+  html.paged .exp.fit-1 .row .when { font-size: 13px; }
+  html.paged .exp.fit-1 .earlier { margin-top: 12px; font-size: 13px; line-height: 1.5; }
+  html.paged .exp.fit-2 .col.cv { row-gap: 14px; }
+  html.paged .exp.fit-2 .sec { font-size: 22px; }
+  html.paged .exp.fit-2 .sec + .rows { margin-top: 8px; }
+  html.paged .exp.fit-2 .row { padding: 6px 0; font-size: 14px; line-height: 1.4; }
+  html.paged .exp.fit-2 .earlier { margin-top: 8px; font-size: 12px; }
+  /* (contact) */
+  html.paged .contact.fit-1 h2 { font-size: 34px; }
+  html.paged .contact.fit-1 .email { margin-top: 18px; }
+  html.paged .contact.fit-1 .cv, html.paged .contact.fit-1 .elsewhere { margin-top: 18px; }
 }
 /* touch: links big enough to hit with a thumb, without moving anything */
 @media (pointer: coarse) {
