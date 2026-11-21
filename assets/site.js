@@ -347,8 +347,8 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   // [viewBox, smallest label size on screen in px, largest label size in drawing units so labels fit their boxes]
   const CROPS = {
     w1: ['-8 40 668 417.5', 12, 17],   // (with the sandboxes faded beside it, as the other chapters show their neighbours)
-    w2: ['342 100 468 292', 12, 18],
-    w3: ['500 6 556 348', 12, 19],
+    w2: ['356 54 440 352', 12, 18],      // (each crop holds its block's whole frame and its name)
+    w3: ['560 8 400 398', 12, 19],
     w4: ['116 452 744 322.5', 12, 18],   // the whole team panel: entries, pool, control plane, VMs, credentials, compute
   };
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
@@ -398,7 +398,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
       const list = col.querySelector('ul');
       if (list) col.insertBefore(box, list);
       else col.insertBefore(box, col.firstChild);
-      minis.push({ box, svg, width: parseFloat(crop[0].split(' ')[2]), px: crop[1], cap: crop[2] });
+      minis.push({ box, svg, width: parseFloat(crop[0].split(' ')[2]), height: parseFloat(crop[0].split(' ')[3]), px: crop[1], cap: crop[2] });
     });
   }
   // the paged layout (phones) shows the work chapters' drawing as one drawing that runs through them, as the wide
@@ -452,9 +452,9 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   });
   function sizeMiniLabels() {
     minis.forEach((m) => {
-      const w = m.svg.getBoundingClientRect().width;
-      if (!w) return;
-      const scale = w / m.width;
+      const r = m.svg.getBoundingClientRect();
+      if (!r.width) return;
+      const scale = Math.min(r.width / m.width, r.height / m.height);   // (a crop set shorter than its shape: by its height)
       m.svg.style.setProperty('--lbl', Math.min(m.cap, Math.max(13, m.px / scale)).toFixed(1) + 'px');
     });
   }
@@ -1161,7 +1161,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     st.transform = 'translate(' + r.left.toFixed(1) + 'px,' + r.top.toFixed(1) + 'px)';
     st.width = r.width.toFixed(1) + 'px';
     st.height = r.height.toFixed(1) + 'px';
-    const scale = r.width / vb[2];
+    const scale = Math.min(r.width / vb[2], r.height / vb[3]);
     const [, px, cap] = CROPS[hl];
     pcam.svg.style.setProperty('--lbl', Math.min(cap, Math.max(13, px / scale)).toFixed(1) + 'px');
   }
@@ -1247,7 +1247,14 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     // scrollable scene bounces it past its ends, which is not scrolling it)
     const max = g.l.scrollHeight - g.l.clientHeight;
     const within = (v) => Math.min(Math.max(v, 0), max);
-    if (Math.abs(within(g.l.scrollTop) - within(g.top)) > 2) return;
+    const moved = Math.abs(within(g.l.scrollTop) - within(g.top));
+    if (moved > 2) {
+      // ... but a swipe that brought the content to its end and went on well past it turns the page too (a scene only
+      // a little taller than the screen would otherwise take two swipes: one to shift it, one to leave it)
+      const ended = dy > 0 ? g.l.scrollTop + g.l.clientHeight >= g.l.scrollHeight - 1 : g.l.scrollTop <= 1;
+      if (ended && Math.abs(dy) - moved > 90) step(dy > 0 ? 1 : -1);
+      return;
+    }
     const quick = window.performance.now() - g.t < 280;
     if (!(Math.abs(dy) > 48 || (quick && Math.abs(dy) > 22))) return;
     if (dy > 0 && g.atEnd) step(1);
@@ -1351,6 +1358,42 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     step(d);
   });
 
+  /* ---------- Phones: each scene is fitted to one screen ---------- */
+  // In the paged layout a scene taller than the screen scrolls inside its layer, and a swipe then moves its content
+  // instead of turning the page (owner, on his phone: chapter 04 would not switch). So a scene that does not fit is
+  // set tighter, step by step, until it does (site.css .fit-1..4): tighter type and spacing; then its drawing gives
+  // up height (--mini-h, down to a floor); then its small print goes and the drawing takes back what that frees; then
+  // tighter still; last, the drawing goes. What still does not fit after that scrolls, as before.
+  const fitScenes = scenes.filter((s) => !s.classList.contains('hero'));
+  function fitPaged() {
+    fitScenes.forEach((s) => { s.classList.remove('fit-1', 'fit-2', 'fit-3', 'fit-4'); s.style.removeProperty('--mini-h'); });
+    if (!paged) return;
+    root.style.setProperty('--work-shift', '0px');           // (alignWork sets it again afterwards)
+    fitScenes.forEach((s) => {
+      const l = layerOf(s);
+      const over = () => l.scrollHeight - l.clientHeight;
+      const m = s.querySelector('.mini:not(.pcam)');
+      // the drawing gives up what is over, down to a floor; true if the scene then fits
+      const shrink = (floor) => {
+        if (!m) return over() <= 0;
+        s.style.removeProperty('--mini-h');
+        const o = over();
+        if (o <= 0) return true;
+        s.style.setProperty('--mini-h', Math.max(floor, m.offsetHeight - o).toFixed(0) + 'px');
+        return over() <= 0;
+      };
+      if (over() <= 0) return;
+      s.classList.add('fit-1');
+      if (over() <= 0 || shrink(132)) return;
+      s.classList.add('fit-2');
+      if (shrink(112)) return;
+      s.classList.add('fit-3');
+      if (shrink(96)) return;
+      s.classList.add('fit-4');
+      s.style.removeProperty('--mini-h');
+    });
+  }
+
   /* ---------- Layout mode: pin scenes when every scene fits on one screen ---------- */
   function fitsPinned() {
     if (reduced || !finePointer.matches || window.innerWidth < 1024 || window.innerHeight < 560) return false;
@@ -1403,13 +1446,14 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
       void root.offsetHeight;
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => root.classList.remove('mode-switch')));
     }
+    fitPaged();
     sizeMiniLabels();
     sizeBackdropLabels();
     alignWork();
     frameHero();
     trimNames();
     if (active && (anchor || switched)) scrollToScene(active);
-    if (paged && pcam && pcam.shown && active && !switched) camTo(active, true);
+    if (paged && pcam && pcam.shown && active) camTo(active, true);   // (the drawing's place may have changed)
     thumbPlaced = false;
     placeThumb();
   }
@@ -1418,7 +1462,12 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   window.addEventListener('resize', () => {
     if (window.innerWidth > 720) openMenu(false);
     // mobile browser bars change the height while scrolling; only a real resize re-anchors
-    if (window.innerWidth < 1024 && window.innerWidth === resizeWidth) { requestFrame(); return; }
+    if (window.innerWidth < 1024 && window.innerWidth === resizeWidth) {
+      requestFrame();
+      // (in the paged layout the screen's height is what every scene is fitted to: fit again once it has settled)
+      if (paged) { window.clearTimeout(resizeTimer); resizeTimer = window.setTimeout(() => setMode(false), 220); }
+      return;
+    }
     resizeWidth = window.innerWidth;
     resizing = true;
     window.clearTimeout(settleTimer);
