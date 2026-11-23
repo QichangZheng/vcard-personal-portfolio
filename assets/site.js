@@ -741,7 +741,7 @@
   let swipe = null;
   window.addEventListener('touchstart', (ev) => {
     swipe = null;
-    if (!paged || introOn || ev.touches.length !== 1 || !active) return;
+    if (!paged || introOn || filmOpen || ev.touches.length !== 1 || !active) return;
     const l = layerOf(active);
     const t = ev.touches[0];
     swipe = { x: t.clientX, y: t.clientY, t: window.performance.now(), l, top: l.scrollTop,
@@ -808,6 +808,7 @@
   let gestureUsed = false;
   window.addEventListener('wheel', (ev) => {
     // sideways swipes stay with the browser (two-finger back/forward)
+    if (filmOpen) { if (ev.cancelable) ev.preventDefault(); return; }   // the film is playing over the page
     if (!pinned || ev.ctrlKey || Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) return;
     ev.preventDefault();
     // the intro owns the wheel while it plays, and the rest of a flick that skipped it is not a new gesture
@@ -854,7 +855,7 @@
     }, 160);
   }, { passive: true });
   document.addEventListener('keydown', (ev) => {
-    if (!pinned || introOn || ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+    if (!pinned || introOn || filmOpen || ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
     const t = ev.target;
     if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
     const onControl = t.closest && t.closest('button, a, summary');
@@ -1082,6 +1083,9 @@
       img.alt = l === 'zh' ? img.dataset.altZh : img.dataset.altEn;
     });
     links.setAttribute('aria-label', l === 'zh' ? '页面章节' : 'Sections');
+    document.querySelectorAll('[data-label-en]').forEach((el) => {
+      el.setAttribute('aria-label', l === 'zh' ? el.dataset.labelZh : el.dataset.labelEn);
+    });
     document.querySelectorAll('.diagram .lbl[data-zh]').forEach((t) => {
       if (!t.dataset.en) t.dataset.en = t.textContent;
       t.textContent = l === 'zh' ? t.dataset.zh : t.dataset.en;
@@ -1126,6 +1130,53 @@
   });
   document.addEventListener('click', (ev) => { if (!nav.contains(ev.target)) openMenu(false); });
   nav.addEventListener('focusout', (ev) => { if (!nav.contains(ev.relatedTarget)) openMenu(false); });
+
+  /* ---------- The film: one player over the page ---------- */
+  // The button in chapter 04 opens it. The video file and its poster are asked for only then; it plays with sound
+  // (the click allows it). Closing (the dark ground, Esc, the close button) pauses it and gives the page back where
+  // it was; while it is open the page behind can be neither scrolled, stepped through nor tabbed into.
+  const film = document.getElementById('film');
+  const filmVideo = film && film.querySelector('video');
+  const filmBehind = [nav, document.getElementById('main'), document.querySelector('.skip')].filter(Boolean);
+  let filmOpen = false;
+  let filmFrom = null;
+  let filmTimer = 0;
+  function openFilm(from) {
+    if (!film || filmOpen || introOn) return;
+    filmOpen = true;
+    filmFrom = from || null;
+    window.clearTimeout(filmTimer);
+    openMenu(false);
+    if (!filmVideo.getAttribute('src')) {
+      filmVideo.setAttribute('poster', filmVideo.dataset.poster);
+      filmVideo.setAttribute('src', filmVideo.dataset.src);
+    }
+    film.hidden = false;
+    root.classList.add('film-open');
+    filmBehind.forEach((el) => { el.inert = true; });
+    void film.offsetHeight;
+    film.classList.add('on');
+    const playing = filmVideo.play();
+    if (playing && playing.catch) playing.catch(() => { /* the controls are there */ });
+    filmVideo.focus({ preventScroll: true });
+  }
+  function closeFilm() {
+    if (!filmOpen) return;
+    filmOpen = false;
+    filmVideo.pause();
+    film.classList.remove('on');
+    root.classList.remove('film-open');
+    filmBehind.forEach((el) => { el.inert = false; });
+    filmTimer = window.setTimeout(() => { film.hidden = true; }, 300);
+    if (filmFrom && filmFrom.focus) filmFrom.focus({ preventScroll: true });
+  }
+  if (film) {
+    document.querySelectorAll('[data-film]').forEach((b) => b.addEventListener('click', () => openFilm(b)));
+    film.addEventListener('click', (ev) => { if (ev.target === film || ev.target.closest('.film-close')) closeFilm(); });
+    document.addEventListener('keydown', (ev) => {
+      if (filmOpen && ev.key === 'Escape') { ev.preventDefault(); closeFilm(); }
+    }, true);
+  }
 
   /* ---------- Shanghai local time ---------- */
   const clock = document.querySelector('.clock');

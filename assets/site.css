@@ -1232,6 +1232,53 @@ html[data-lang="zh"] .about .big { letter-spacing: .01em; line-height: 1.6; }
 }
 .work ul { list-style: none; padding: 0; margin-top: 36px; display: grid; gap: 16px; }
 .work li { position: relative; padding-left: 20px; color: var(--ink2); }
+/* the film: a button in chapter 04 and one player layer over the page */
+.film-cta { margin-top: 20px; }
+.film-btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 11px 19px 11px 15px; border: 0; border-radius: 999px;
+  font: inherit; font-size: 15px; line-height: 1; color: #fff; cursor: pointer;
+  background: var(--ink);
+  box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .45);
+  transition: background-color .3s var(--ease), transform .3s var(--ease-out), box-shadow .3s var(--ease);
+}
+.film-btn svg { width: 14px; height: 14px; fill: currentColor; }
+.film-btn:hover { background: #000; transform: translateY(-1px); box-shadow: 0 14px 28px -14px rgba(0, 0, 0, .5); }
+.film-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.work .film-cta ~ ul { margin-top: 24px; }
+/* chapter 04 carries the button and the most text: on laptop screens it is set a little tighter, so the page keeps
+   its scene-by-scene layout */
+@media (min-width: 1024px) and (max-height: 940px) {
+  #agent-team .film-cta { margin-top: 14px; }
+  #agent-team .film-cta ~ ul { margin-top: 18px; gap: 10px; }
+  #agent-team li { font-size: 16px; line-height: 1.5; }
+}
+.film-layer {
+  position: fixed; inset: 0; z-index: 70;
+  display: grid; place-items: center;
+  background: rgba(18, 19, 24, .84);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  opacity: 0; transition: opacity .28s var(--ease);
+}
+.film-layer[hidden] { display: none; }
+.film-layer.on { opacity: 1; }
+.film-layer video {
+  display: block; width: min(1280px, 90vw, calc(90vh * 16 / 9)); width: min(1280px, 90vw, calc(90svh * 16 / 9));
+  height: auto; aspect-ratio: 16 / 9;
+  border-radius: 12px; background: #000;
+  box-shadow: 0 40px 90px -40px rgba(0, 0, 0, .8);
+}
+.film-close {
+  position: absolute; top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right));
+  width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  color: #fff; background: rgba(255, 255, 255, .14);
+  transition: background-color .25s var(--ease);
+}
+.film-close:hover { background: rgba(255, 255, 255, .26); }
+.film-close:focus-visible { outline: 2px solid #fff; outline-offset: 3px; border-radius: 50%; }
+.film-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+html.film-open, html.film-open body { overflow: hidden; }
 .work li::before {
   content: ""; position: absolute; left: 0; top: .82em;
   width: 7px; height: 1px; background: var(--faint);
@@ -1466,6 +1513,12 @@ html.paged .scene .mini:not(.hero-mini) { visibility: hidden; }
   html.paged .scene.fit-1 h3 { font-size: 32px; }
   html.paged .scene.fit-1 .line { margin-top: 6px; font-size: 17px; line-height: 1.4; }
   html.paged .scene.fit-1 .mini:not(.hero-mini) { margin-top: 12px; }
+  html.paged .scene.fit-1 .film-cta { margin-top: 10px; }
+  html.paged .scene.fit-1 .film-btn { padding: 9px 15px 9px 12px; font-size: 14px; }
+  html.paged .scene.work.fit-1 .film-cta ~ ul { margin-top: 12px; }
+  html.paged .scene.fit-3 .film-cta { margin-top: 7px; }
+  html.paged .scene.fit-3 .film-btn { padding: 7px 13px 7px 10px; font-size: 13px; }
+  html.paged .scene.work.fit-3 .film-cta ~ ul { margin-top: 8px; }
   html.paged .scene.work.fit-1 ul { margin-top: 12px; gap: 6px; }
   html.paged .scene.work.fit-1 li { font-size: 14px; line-height: 1.5; padding-left: 16px; }
   html[data-lang="zh"].paged .scene.work.fit-1 li { line-height: 1.55; }
@@ -1592,7 +1645,7 @@ html.paged .scene .mini:not(.hero-mini) { visibility: hidden; }
 
 /* ---------- Print / Save as PDF ---------- */
 @media print {
-  .backdrop, .nav, .veil, .chapter, .skip, .mini, .intro { display: none !important; }
+  .backdrop, .nav, .veil, .chapter, .skip, .mini, .intro, .film-layer, .film-cta { display: none !important; }
   html.intro-on .hero h1 { visibility: visible; }
   html.pinned .scene { height: auto; }
   .layer, html.pinned .layer { position: static; min-height: 0; padding: 24px 0; opacity: 1 !important; filter: none !important; transform: none !important; }
