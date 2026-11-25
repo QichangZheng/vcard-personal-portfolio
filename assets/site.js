@@ -346,6 +346,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   // viewBox crops of the drawing for narrow screens:
   // [viewBox, smallest label size on screen in px, largest label size in drawing units so labels fit their boxes]
   const CROPS = {
+    hero: ['122 54 732 714', 12, 18],   // the whole drawing, every block shut (the road runs in and out at the sides)
     w1: ['-8 40 668 417.5', 12, 17],   // (with the sandboxes faded beside it, as the other chapters show their neighbours)
     w2: ['356 54 440 352', 12, 18],      // (each crop holds its block's whole frame and its name)
     w3: ['560 8 400 398', 12, 19],
@@ -391,8 +392,18 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
       // a crop keeps only its own loop (the others lie outside its view, and each would cost a few hundred animations)
       const hl = s.dataset.scene;
       svg.querySelectorAll('.cl').forEach((g) => { if (!g.classList.contains('cl-' + hl)) g.remove(); });
-      if (hl !== 'w4' && hl !== 'hero') svg.querySelectorAll('.g-team .fx').forEach((n) => n.remove());
+      if (hl !== 'w4') svg.querySelectorAll('.g-team .fx').forEach((n) => n.remove());
       box.appendChild(svg);
+      if (hl === 'hero') {
+        // the first screen on narrow screens: the same drawing as wide screens show there, still, under the text.
+        // Its frames are too narrow at that size for the full names: each goes by its own word
+        svg.querySelectorAll('.cl').forEach((g) => g.remove());
+        svg.querySelectorAll('.pname').forEach((t) => { t.textContent = t.textContent.replace(/^North /, ''); });
+        const film = s.querySelector('.film');
+        if (film) film.insertBefore(box, film.firstChild);
+        minis.push({ box, svg, width: parseFloat(crop[0].split(' ')[2]), height: parseFloat(crop[0].split(' ')[3]), px: crop[1], cap: crop[2], hero: true });
+        return;
+      }
       const col = s.querySelector('.col');
       // chapters: the drawing sits between the subtitle and the points, so the scene starts at its heading
       const list = col.querySelector('ul');
@@ -443,7 +454,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     } else teamMini.box.classList.add('run');
   }
   // chapters 01-03 and the hero: each crop runs its own loop the same way, from the loop's start
-  minis.filter((m) => /^(w[123]|hero)$/.test(m.box.dataset.hl)).forEach((m) => {
+  minis.filter((m) => /^w[123]$/.test(m.box.dataset.hl)).forEach((m) => {
     if (!('IntersectionObserver' in window)) { m.box.classList.add('run'); return; }
     new IntersectionObserver((es) => es.forEach((e) => {
       if (paged) return;
@@ -456,6 +467,8 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
       if (!r.width) return;
       const scale = Math.min(r.width / m.width, r.height / m.height);   // (a crop set shorter than its shape: by its height)
       m.svg.style.setProperty('--lbl', Math.min(m.cap, Math.max(13, m.px / scale)).toFixed(1) + 'px');
+      // (the first screen's names: about 12 px, as far as the narrowest frame holds its word)
+      if (m.hero) m.svg.style.setProperty('--pname', Math.min(30, 12 / scale).toFixed(1) + 'px');
     });
   }
 
