@@ -279,7 +279,7 @@ html.cut-nac .backdrop .g-nac.pn, html.cut-sbx .backdrop .g-sbx.pn, html.cut-fw 
 .backdrop .edge-probe { position: absolute; left: 0; top: 0; height: 0; width: calc(var(--text-edge) + 110px); visibility: hidden; }
 /* the hero: the whole drawing, as large as the room beside the text allows (site.js frameHero sets --hero-tf and
    --hero-left, the drawing's left end on screen), so its soft edges stand clear of it */
-html[data-scene="hero"] .backdrop { --me0: calc(var(--hero-left, 50vw) - 40px); --me1: calc(var(--hero-left, 50vw) - 10px); --mt0: 4px; --mt1: 40px; }
+html:is([data-scene="hero"], [data-scene="about"]) .backdrop { --me0: calc(var(--hero-left, 50vw) - 40px); --me1: calc(var(--hero-left, 50vw) - 10px); --mt0: 4px; --mt1: 40px; }
 .mode-switch .backdrop { transition: none !important; }
 @media (min-width: 1024px) and (max-width: 1279px) {
   .backdrop { --text-edge: calc(var(--gutter) + 40vw); }
@@ -364,8 +364,8 @@ html[data-scene="hero"] .backdrop { --me0: calc(var(--hero-left, 50vw) - 40px); 
 .js.settled :is(.backdrop, .hero-mini) :is(.tint, .slot.busy, .bound) { transition: fill .9s var(--ease), stroke .9s var(--ease); }
 
 /* scene states of the backdrop drawing */
-[data-scene="hero"] .backdrop .diagram { transform: var(--hero-tf, translateY(-47%)); }
-[data-scene="about"] .backdrop .diagram,
+/* (the About screen keeps the first screen's framing: the same drawing stays where it is while the text changes) */
+:is([data-scene="hero"], [data-scene="about"]) .backdrop .diagram { transform: var(--hero-tf, translateY(-47%)); }
 [data-scene="exp"] .backdrop .diagram,
 [data-scene="contact"] .backdrop .diagram { opacity: 0; transform: translateY(-47%) scale(.94); }
 
@@ -440,7 +440,6 @@ html[data-scene="hero"].hl-fw .backdrop .g-fw .pname, html[data-scene="hero"].hl
   [data-scene="w4"] .backdrop .diagram { transform: translate(calc(-2.5% + 0.4301 * max(0px, 50vw - 90.645vh)), -82%) scale(1); }
 }
 /* leaving the drawing for a text-only scene: fade quickly so it never shows through the arriving block */
-[data-scene="about"] .backdrop .diagram,
 [data-scene="exp"] .backdrop .diagram,
 [data-scene="contact"] .backdrop .diagram { transition: opacity .45s var(--ease), transform 1.3s cubic-bezier(.65, 0, .35, 1); }
 /* the drawing was invisible when the scene changed: it takes its new framing at once,
@@ -1074,7 +1073,7 @@ html[data-lang="zh"] .diagram .lbl.pname { font-family: var(--font-zh); }   /* (
 [data-scene="w4"] .backdrop .g-built:not(#_) { opacity: 0; }
 .mini .g-built { display: none; }
 /* a block answers a request, or a change an agent shipped (the first screen's two moves) */
-:is(.cl-hero, .cl-built) .lit.pfl { stroke-width: 1.6; fill: rgba(63, 91, 208, .05); stroke: var(--accent); }
+:is(.cl-hero, .cl-built) .lit.pfl { stroke-width: 2.2; fill: none; stroke: var(--ink); }
 /* the machine both users' containers run on: a quiet dashed frame around them, its name set into its lower edge */
 .diagram .hostframe { fill: none; stroke: #8e8e93; stroke-dasharray: 2 4; }
 .diagram .frame-bg { fill: var(--bg); stroke: none; }
@@ -1183,10 +1182,10 @@ html:is(.pinned, .paged):not([data-scene="hero"]) .hd :is(.dt circle, .bead path
 .film-cap b { font-weight: 600; color: var(--ink); }
 .film-len { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
+/* one column, left of the drawing (site.js frameHero: --about-w is the room up to the drawing's left end) */
 .about .layer {
-  grid-template-columns: minmax(0, 35rem) 1fr;
-  column-gap: 6vw;
-  align-items: center;
+  grid-template-columns: minmax(0, min(35rem, var(--about-w, 35rem)));
+  align-content: center;
 }
 .about .col { max-width: 35rem; }
 .about p + p { margin-top: 18px; }
@@ -1202,8 +1201,20 @@ html[data-lang="zh"] .about .big { letter-spacing: .01em; line-height: 1.6; }
 /* the numbers behind Agent Team, set small under it */
 .about .big + .big { margin-top: 0; }
 .about .stats { margin-top: -14px; margin-bottom: 30px; font-size: 14px; line-height: 1.6; color: var(--mute); }
-.portrait { justify-self: center; width: clamp(200px, 17vw, 260px); }
-.portrait img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 28px; }
+.portrait { display: block; width: 104px; margin-bottom: 26px; }
+.portrait img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 22px; }
+@media (min-width: 1024px) and (max-height: 900px) {
+  .portrait { width: 72px; margin-bottom: 16px; }
+  .portrait img { border-radius: 16px; }
+  .about .big { font-size: clamp(18px, 1.4vw, 20px); margin-bottom: 20px; }
+  .about .stats { margin-top: -8px; margin-bottom: 20px; }
+  .about p + p { margin-top: 14px; }
+}
+@media (min-width: 1024px) and (max-width: 1279px) and (max-height: 900px) {
+  .portrait { width: 60px; margin-bottom: 14px; }
+  .about .big { font-size: 17px; margin-bottom: 16px; }
+  .about .stats { margin-bottom: 16px; }
+}
 
 .meta { display: flex; align-items: baseline; gap: 14px; margin-bottom: 18px; font-size: 14px; color: var(--faint); }
 .meta .num { font-variant-numeric: tabular-nums; letter-spacing: .04em; }

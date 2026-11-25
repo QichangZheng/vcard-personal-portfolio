@@ -525,6 +525,8 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     const ty = f.sy(0) - cy - f.S * (oy + (0 - VB.y) * unit - h / 2);
     root.style.setProperty('--hero-tf', 'translate(' + tx.toFixed(1) + 'px, ' + ty.toFixed(1) + 'px) scale(' + f.S.toFixed(4) + ')');
     root.style.setProperty('--hero-left', f.sx(HERO_BOX.x0).toFixed(0) + 'px');
+    // the About screen's text stands left of the same drawing
+    root.style.setProperty('--about-w', Math.max(280, f.sx(HERO_BOX.x0) - 44 - Math.min(...texts.map((t) => t.l))).toFixed(0) + 'px');
     // the products' names: 15 px or more on the first screen (as far as the narrowest frame holds its name), in the
     // drawing's units; each block's hit area lies over its frame
     drawing.parentNode.style.setProperty('--pname', Math.min(20, Math.max(14, 15.6 / (unit * f.S))).toFixed(1) + 'px');
@@ -2011,8 +2013,10 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     // each thread's dot lands as its thread arrives; a block's name comes in as its frame closes, and so do the person
     // and the cloud; the side index answers
     svg.querySelectorAll('.bdot').forEach((dot) => {
-      const it = items.find((x) => x.el === dot.previousElementSibling);
+      const prev = dot.previousElementSibling;
+      const it = items.find((x) => x.el === prev);
       if (it) dot.style.setProperty('--ld', (it.end - 0.1).toFixed(3) + 's');
+      else if (prev && prev.style.getPropertyValue('--ld')) dot.style.setProperty('--ld', (parseFloat(prev.style.getPropertyValue('--ld')) + 0.5).toFixed(3) + 's');
     });
     pings = [];
     svg.querySelectorAll('.pname, .fade').forEach((el) => {
