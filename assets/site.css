@@ -296,6 +296,12 @@ html:is([data-scene="hero"], [data-scene="about"]) .backdrop { --me0: calc(var(-
   transition: opacity 1.1s var(--ease), transform 1.3s cubic-bezier(.65, 0, .35, 1);
 }
 .diagram { font-family: var(--font); --line: #1c1c1f; --label: #2c2c30; }
+/* before any project is being told (the first screen, About) the drawing is in the old version's quiet grey line:
+   dark ink there took the reader's eye off the text (owner, 2026-11-27). In a chapter the open block is blue and
+   the other three are the dark line dimmed, which comes to about the same grey. */
+html:is([data-scene="hero"], [data-scene="about"]) .backdrop .diagram, .mini.hero-mini .diagram { --line: #c4c5cb; --label: #9a9aa0; }
+html:is([data-scene="hero"], [data-scene="about"]) .backdrop .diagram :is(.built), .mini.hero-mini .diagram .built { stroke: #c4c5cb; }
+html:is([data-scene="hero"], [data-scene="about"]) .backdrop .diagram .bdot, .mini.hero-mini .diagram .bdot { fill: #c4c5cb; }
 /* three levels of fill say what is inside what: product panel > container > node */
 .diagram .n, .diagram .e {
   fill: none;
@@ -1084,7 +1090,7 @@ html[data-lang="zh"] .diagram .lbl.pname { font-family: var(--font-zh); }   /* (
 [data-scene="w4"] .backdrop .g-built:not(#_) { opacity: 0; }
 .mini .g-built { display: none; }
 /* a block answers a request, or a change an agent shipped (the first screen's two moves) */
-:is(.cl-hero, .cl-built) .lit.pfl { stroke-width: 2.2; fill: none; stroke: var(--ink); }
+:is(.cl-hero, .cl-built) .lit.pfl { stroke-width: 1.8; fill: none; stroke: #8e8e93; }
 /* the machine both users' containers run on: a quiet dashed frame around them, its name set into its lower edge */
 .diagram .hostframe { fill: none; stroke: #8e8e93; stroke-dasharray: 2 4; }
 .diagram .frame-bg { fill: var(--bg); stroke: none; }

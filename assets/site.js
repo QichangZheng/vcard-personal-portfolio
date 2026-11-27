@@ -1950,7 +1950,8 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   // Sandbox and North Firewall are drawn one after another along the road, which ends at the Internet; then the Agent
   // Team (its frame, the person and the cloud); last the three threads from the cloud to what the team built: under
   // 5 s in all. Each block's name comes in as its frame closes, and its number in the side index lights for a moment.
-  const PHASE = { nac: 0, sbx: 0.8, fw: 1.6, team: 2.4, built: 3.5 };
+  // (the four blocks are drawn together, the threads between them just after: owner, 2026-11-27: one after another was too slow)
+  const PHASE = { nac: 0, sbx: 0, fw: 0, team: 0, built: 1.1 };
   function phaseOf(el) {
     const grp = el.closest('.grp');
     const c = grp ? grp.classList : null;
