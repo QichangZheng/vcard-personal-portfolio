@@ -2025,7 +2025,9 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   // The Agent Team is drawn first, its threads then grow up to the three products, and those are drawn together at
   // the threads' ends: the team is what builds them (owner, 2026-11-27; one block after another was too slow, all
   // four at once too fast)
-  const PHASE = { team: 0, built: 1.5, nac: 2.3, sbx: 2.3, fw: 2.3 };
+  // (owner, later the same day: still slow; the whole framework, the team and the three empty frames, is drawn at once,
+  // the threads grow as it closes, and the build that follows is what shows the team driving the development)
+  const PHASE = { team: 0, built: 0.7, nac: 0, sbx: 0, fw: 0 };
   const THREAD_GROW = 0.9;
   function phaseOf(el) {
     const grp = el.closest('.grp');
