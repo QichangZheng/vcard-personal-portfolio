@@ -913,6 +913,40 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   const num = (name) => (drawing ? parseFloat(drawing.getAttribute(name) || '0') : 0);
   const heroReq = { run: num('data-hero-run') * 1000 };
   const heroBuilt = { every: num('data-built-every') * 1000, n: num('data-built-n'), run: num('data-built-run') * 1000 };
+  // The build (once, on the first screen): the products start as empty frames and the Agent Team delivers them piece
+  // by piece, a bead up a thread for each (gen.py data-build: piece:arrival). A piece is drawn as its bead lands
+  // (site.css .pc). Leaving the first screen, or a hidden tab, completes it at once: the chapters need the whole drawing.
+  const BUILD = drawing ? (drawing.getAttribute('data-build') || '').split(',').filter(Boolean).map((x) => { const [k, t] = x.split(':'); return [k, parseFloat(t) * 1000]; }) : [];
+  const build = { state: 'none', timers: [] };   // none | armed | running | done
+  function buildArm() {
+    if (build.state !== 'none' || !BUILD.length || !canAnimate() || getComputedStyle(drawing.parentNode).display === 'none') return;
+    build.state = 'armed';
+    root.classList.add('hero-build');
+  }
+  function buildFinish(instant) {
+    if (build.state !== 'armed' && build.state !== 'running') return;
+    build.timers.forEach((t) => window.clearTimeout(t));
+    build.timers = [];
+    build.state = 'done';
+    root.classList.remove('hero-building');
+    drawing.querySelectorAll('.pc').forEach((g) => g.classList.add('on'));
+    if (instant) root.classList.remove('hero-build');
+    else window.setTimeout(() => root.classList.remove('hero-build'), 1200);
+  }
+  function buildStart(ms) {
+    build.state = 'running';
+    build.timers.push(window.setTimeout(() => {
+      seekLoop(drawing, '.cl-build', 0);
+      root.classList.add('hero-building');
+      BUILD.forEach(([key, at]) => build.timers.push(window.setTimeout(() => {
+        drawing.querySelectorAll('.pc[data-pc="' + key + '"]').forEach((g) => g.classList.add('on'));
+      }, at)));
+      build.timers.push(window.setTimeout(() => {
+        buildFinish(false);
+        if (root.getAttribute('data-scene') === 'hero' && !document.hidden) heroStart(HERO_REST);
+      }, BUILD[BUILD.length - 1][1] + 1100));
+    }, ms));
+  }
   function heroStop() {
     window.clearTimeout(heroPlay.timer);
     heroPlay.on = false;
@@ -945,6 +979,8 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   function heroStart(ms) {
     heroStop();
     if (!drawing || reduced || getComputedStyle(drawing.parentNode).display === 'none') return;
+    if (build.state === 'armed') { buildStart(ms); return; }
+    if (build.state === 'running') return;
     heroPlay.on = true;
     // at rest: nothing on the road, nothing on the threads
     seekLoop(drawing, '.cl-built', 0);
@@ -952,7 +988,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     heroPlay.timer = window.setTimeout(heroNext, ms);
   }
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) heroStop();
+    if (document.hidden) { heroStop(); buildFinish(true); }
     else if (root.getAttribute('data-scene') === 'hero' && root.classList.contains('settled')) heroStart(1500);
   });
 
@@ -1088,7 +1124,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     if (prev && scene.dataset.scene === 'w4') restartStory();
     if (prev && /^w[123]$/.test(scene.dataset.scene)) restartChapter(scene.dataset.scene);
     // the hero's one-thing-at-a-time play stops when the hero is left and starts over when it is back
-    if (prev === scenes[0]) heroStop();
+    if (prev === scenes[0]) { heroStop(); buildFinish(true); }
     if (prev && scene === scenes[0] && root.classList.contains('settled')) heroStart(2200);
     swapChapter(prev, instant);
   }
@@ -2075,6 +2111,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   }
   function sketchAll(t0, ordered) {
     if (!canAnimate()) return;
+    if (ordered) buildArm();   // (the first screen: the products come in as frames, the team then fills them)
     penEnd = sketch(drawing, t0, ordered);
   }
   function toTop() {
