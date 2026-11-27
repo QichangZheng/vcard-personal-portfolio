@@ -435,11 +435,18 @@ html:is([data-scene="hero"], [data-scene="about"]) .backdrop .diagram .bdot, .mi
 [data-scene="w1"] .backdrop .g-nac .lbl.cap,
 [data-scene="w2"] .backdrop .g-sbx .lbl.cap,
 [data-scene="w4"] .backdrop .g-team .lbl.cap { fill: var(--mute); }
+/* in a chapter (and on About) the other blocks lead to their chapters too: the pointer says so, and the block under
+   it comes forward a little */
+html.blk-hover, html.blk-hover .layer { cursor: pointer; }
+html[data-scene^="w"].hl-nac .backdrop .g-nac:not(.dt):not(.pn), html[data-scene^="w"].hl-sbx .backdrop .g-sbx:not(.dt):not(.pn),
+html[data-scene^="w"].hl-fw .backdrop .g-fw:not(.dt):not(.pn), html[data-scene^="w"].hl-team .backdrop .g-team:not(.dt):not(.pn) { opacity: .62; transition: opacity .2s var(--ease); }
+html[data-scene^="w"].hl-nac .backdrop .g-nac.pn .pname, html[data-scene^="w"].hl-sbx .backdrop .g-sbx.pn .pname,
+html[data-scene^="w"].hl-fw .backdrop .g-fw.pn .pname, html[data-scene^="w"].hl-team .backdrop .g-team.pn .pname { fill: var(--ink2); }
 /* the first screen: a block under the pointer (or the keyboard's focus) goes blue: it leads to its chapter */
-html[data-scene="hero"].hl-nac .backdrop .g-nac :is(.n, .e), html[data-scene="hero"].hl-sbx .backdrop .g-sbx :is(.n, .e),
-html[data-scene="hero"].hl-fw .backdrop .g-fw :is(.n, .e), html[data-scene="hero"].hl-team .backdrop .g-team :is(.n, .e) { stroke: var(--accent); transition-duration: .25s; }
-html[data-scene="hero"].hl-nac .backdrop .g-nac .pname, html[data-scene="hero"].hl-sbx .backdrop .g-sbx .pname,
-html[data-scene="hero"].hl-fw .backdrop .g-fw .pname, html[data-scene="hero"].hl-team .backdrop .g-team .pname { fill: var(--accent); }
+html:is([data-scene="hero"], [data-scene="about"]).hl-nac .backdrop .g-nac :is(.n, .e), html:is([data-scene="hero"], [data-scene="about"]).hl-sbx .backdrop .g-sbx :is(.n, .e),
+html:is([data-scene="hero"], [data-scene="about"]).hl-fw .backdrop .g-fw :is(.n, .e), html:is([data-scene="hero"], [data-scene="about"]).hl-team .backdrop .g-team :is(.n, .e) { stroke: var(--accent); transition-duration: .25s; }
+html:is([data-scene="hero"], [data-scene="about"]).hl-nac .backdrop .g-nac .pname, html:is([data-scene="hero"], [data-scene="about"]).hl-sbx .backdrop .g-sbx .pname,
+html:is([data-scene="hero"], [data-scene="about"]).hl-fw .backdrop .g-fw .pname, html:is([data-scene="hero"], [data-scene="about"]).hl-team .backdrop .g-team .pname { fill: var(--accent); }
 /* the camera moves in on the part of the drawing each chapter is about: one zoom (1.3x) from the hero,
    then pans between chapters. Values come from tools/camera18103.js: the highlighted part stays whole on screen,
    clear of the text by 40px or more and past the soft edge of the side mask, below the chapter pill and

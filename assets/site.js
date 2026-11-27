@@ -584,6 +584,41 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     });
   }
 
+  // Every block of the drawing leads to its chapter wherever the drawing shows, not only on the first screen (owner,
+  // 2026-11-27: from a chapter, a click on another block did nothing). The drawing lies behind the page and takes no
+  // pointer events, so a click or a move on the page is tested against the four frames where they stand on screen.
+  const blockAt = (ev) => {
+    if (!drawing || !ptags || introOn || (ev.target.closest && ev.target.closest('a, button, input, .col, .nav, .film-layer'))) return null;
+    const scene = root.getAttribute('data-scene') || '';
+    if (!/^(hero|about|w[1-4])$/.test(scene) || getComputedStyle(drawing.parentNode).display === 'none') return null;
+    const edge = scene === 'hero' || scene === 'about' ? 0 : (edgeProbe ? edgeProbe.offsetWidth - 60 : 0);
+    if (ev.clientX < edge) return null;
+    let hit = null;
+    ptags.querySelectorAll('a').forEach((a) => {
+      const f = drawing.querySelector('.grp.pf.g-' + a.dataset.g + ' .bound');
+      if (!f || GROUP[scene] === 'g-' + a.dataset.g) return;
+      const r = f.getBoundingClientRect();
+      if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top - 12 && ev.clientY <= r.bottom) hit = a;
+    });
+    return hit;
+  };
+  let hoverBlock = null;
+  document.addEventListener('pointermove', (ev) => {
+    if (ev.pointerType && ev.pointerType !== 'mouse') return;
+    const a = blockAt(ev);
+    const key = a ? a.dataset.g : null;
+    if (key === hoverBlock) return;
+    if (hoverBlock) root.classList.remove('hl-' + hoverBlock, 'blk-hover');
+    hoverBlock = key;
+    if (key) root.classList.add('hl-' + key, 'blk-hover');
+  });
+  document.addEventListener('click', (ev) => {
+    const a = blockAt(ev);
+    if (!a) return;
+    if (hoverBlock) { root.classList.remove('hl-' + hoverBlock, 'blk-hover'); hoverBlock = null; }
+    go(a.dataset.go, true);
+  });
+
   // a block under the pointer or the keyboard's focus goes blue (site.css .hl-*)
   if (ptags) ptags.querySelectorAll('a').forEach((a) => {
     const on = () => root.classList.add('hl-' + a.dataset.g);
@@ -2042,7 +2077,8 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
         pen.style.animationTimingFunction = PEN_EASE;
         it.el.after(pen);
       }
-      end = Math.max(end, it.end);
+      // (the pieces the team will deliver are not drawn now: the drawing is down when the frames are)
+      if (!(build.state === 'armed' && it.el.closest('.pc'))) end = Math.max(end, it.end);
     });
     // labels, the Tracing bars and the pool's lights: when the box they sit in is closed (the smallest one around
     // them); dashed lines with the connecting lines
@@ -2106,7 +2142,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
       root.classList.add('settled');
       document.querySelectorAll('.diagram .pen').forEach((p) => p.remove());
       navLinks.forEach((a) => a.classList.remove('ping'));   // (the drawing is down: the side index is as the first screen has it)
-      if (root.getAttribute('data-scene') === 'hero') heroStart(1200);
+      if (root.getAttribute('data-scene') === 'hero') heroStart(build.state === 'armed' ? 100 : 1200);   // (the first bead leaves as the frames close)
     }, wait);
   }
   function sketchAll(t0, ordered) {
