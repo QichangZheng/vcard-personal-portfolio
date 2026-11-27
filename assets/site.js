@@ -908,7 +908,7 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   // answers; then everything rests for HERO_REST and the other kind takes its turn. gen.py writes how long each takes
   // (data-hero-run; data-built-every / -n / -run: one window of the threads' loop each). The loops only run while
   // their class is on <html> (site.css: .hero-req, .hero-built).
-  const HERO_REST = 5500;
+  const HERO_REST = 4200;
   const heroPlay = { timer: 0, n: 0, built: 0, on: false };
   const num = (name) => (drawing ? parseFloat(drawing.getAttribute(name) || '0') : 0);
   const heroReq = { run: num('data-hero-run') * 1000 };
@@ -922,7 +922,8 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     if (!heroPlay.on) return;
     root.classList.remove('hero-req', 'hero-built');
     if (root.getAttribute('data-scene') !== 'hero' || reduced || document.hidden) { heroPlay.on = false; return; }
-    const built = heroPlay.n % 2 === 1 && heroBuilt.n;
+    // (only the threads play: a request running the road went through boxes the shut blocks do not show: owner, 2026-11-27)
+    const built = heroBuilt.n > 0;
     heroPlay.n += 1;
     let ms = 0;
     if (built) {
