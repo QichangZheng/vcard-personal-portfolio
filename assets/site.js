@@ -1014,8 +1014,9 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   function heroStart(ms) {
     heroStop();
     if (!drawing || reduced || getComputedStyle(drawing.parentNode).display === 'none') return;
-    if (build.state === 'armed') { buildStart(ms); return; }
-    if (build.state === 'running') return;
+    if (build.state === 'armed') buildStart(ms);
+    // (the beads are used once: the build. After it the first screen is still: owner, 2026-11-28)
+    return;
     heroPlay.on = true;
     // at rest: nothing on the road, nothing on the threads
     seekLoop(drawing, '.cl-built', 0);
