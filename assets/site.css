@@ -381,6 +381,14 @@ html:is([data-scene="hero"], [data-scene="about"]) .backdrop .diagram .bdot, .mi
    words always come and go together. The same rules serve the phone's crops (.mini[data-hl]). */
 .diagram .grp.dt { opacity: 0; }
 [data-scene^="w"] .backdrop .grp:not(.dt), .mini .grp:not(.dt) { opacity: .32; }
+/* (a dimmed block's name is not made transparent: its paper-coloured halo must go on hiding the frame's line behind
+   it, so only its ink goes pale) */
+[data-scene^="w"] .backdrop .grp.pn, .mini .grp.pn { opacity: 1; }
+[data-scene^="w"] .backdrop .grp.pn .pname, .mini:not(.hero-mini) .grp.pn .pname { fill: #b4b4b8; }
+:is([data-scene="w1"] .backdrop, .mini[data-hl="w1"]) .grp.pn.g-nac .pname,
+:is([data-scene="w2"] .backdrop, .mini[data-hl="w2"]) .grp.pn.g-sbx .pname,
+:is([data-scene="w3"] .backdrop, .mini[data-hl="w3"]) .grp.pn.g-fw .pname,
+:is([data-scene="w4"] .backdrop, .mini[data-hl="w4"]) .grp.pn.g-team .pname { fill: var(--ink); }
 :is([data-scene="w1"] .backdrop, .mini[data-hl="w1"]) .g-nac:not(.ic),
 :is([data-scene="w2"] .backdrop, .mini[data-hl="w2"]) .g-sbx:not(.ic),
 :is([data-scene="w3"] .backdrop, .mini[data-hl="w3"]) .g-fw:not(.ic),
@@ -1085,6 +1093,10 @@ html[data-lang="zh"] .diagram .lbl.pname { font-family: var(--font-zh); }   /* (
 /* "the agent team built these three": a thin thread from the cloud up to each product, a dot where it lands */
 .diagram .built { stroke: #55555d; stroke-width: 1.1; }
 .diagram .bdot { fill: #55555d; }
+/* (on the first screen the threads grow from the team up to the products: revealed from the bottom, site.js sets when) */
+.js .backdrop .g-built { clip-path: inset(100% -12px -12px -12px); }
+.js.drawn .backdrop .g-built { clip-path: inset(-12px); transition: clip-path var(--bt, .9s) cubic-bezier(.45, 0, .55, 1) var(--bd, 1.5s), opacity .9s var(--ease); }
+.js.settled .backdrop .g-built { clip-path: none; transition: opacity .9s var(--ease); }
 .js .backdrop .bdot { opacity: 0; }
 .js.drawn .backdrop .bdot { opacity: 1; transition: opacity .5s var(--ease) var(--ld, 3s); }
 [data-scene="w4"] .backdrop .g-built:not(#_) { opacity: 0; }
@@ -1718,6 +1730,7 @@ html.paged .scene .mini:not(.hero-mini) { visibility: hidden; }
   .js .scene:not(.is-in) .r { opacity: 1; }
   .js .scene .split .sc { transform: none !important; }
   .js .backdrop .draw { stroke-dasharray: none; stroke-dashoffset: 0; }
+  .js .backdrop .g-built { clip-path: none; }
   .js .backdrop :is(.lbl, .dash) { opacity: 1; }
   .js .backdrop .n { fill-opacity: 1; }
   .js .backdrop :is(.leds, .acct-name) { opacity: 1; }

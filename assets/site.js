@@ -1950,8 +1950,11 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
   // Sandbox and North Firewall are drawn one after another along the road, which ends at the Internet; then the Agent
   // Team (its frame, the person and the cloud); last the three threads from the cloud to what the team built: under
   // 5 s in all. Each block's name comes in as its frame closes, and its number in the side index lights for a moment.
-  // (the four blocks are drawn together, the threads between them just after: owner, 2026-11-27: one after another was too slow)
-  const PHASE = { nac: 0, sbx: 0, fw: 0, team: 0, built: 1.1 };
+  // The Agent Team is drawn first, its threads then grow up to the three products, and those are drawn together at
+  // the threads' ends: the team is what builds them (owner, 2026-11-27; one block after another was too slow, all
+  // four at once too fast)
+  const PHASE = { team: 0, built: 1.5, nac: 2.3, sbx: 2.3, fw: 2.3 };
+  const THREAD_GROW = 0.9;
   function phaseOf(el) {
     const grp = el.closest('.grp');
     const c = grp ? grp.classList : null;
@@ -2009,7 +2012,8 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
     const boxes = items.filter((it) => !it.el.classList.contains('e') || it.el.classList.contains('bound'));
     svg.querySelectorAll('.lbl, .dash:not(.bound), .span, .leds, .acct-name').forEach((el) => {
       let when = t0 + 1.8;
-      if (ordered && el.classList.contains('e')) when = t0 + PHASE[phaseOf(el)] + 0.4;
+      if (ordered && el.classList.contains('e')) when = t0 + PHASE[phaseOf(el)] + (phaseOf(el) === 'built' ? -0.1 : 0.4);
+      if (ordered && el.classList.contains('end')) when = t0 + PHASE.fw + 1.5;   // (where the road leads: named once the road is there)
       if (!el.classList.contains('e')) {
         const b = el.getBBox();
         const cx = b.x + b.width / 2;
@@ -2030,8 +2034,10 @@ g.HeroDraw = { mount: mount, play: play, finish: finish, seek: seek, setLang: se
       const prev = dot.previousElementSibling;
       const it = items.find((x) => x.el === prev);
       if (it) dot.style.setProperty('--ld', (it.end - 0.1).toFixed(3) + 's');
-      else if (prev && prev.style.getPropertyValue('--ld')) dot.style.setProperty('--ld', (parseFloat(prev.style.getPropertyValue('--ld')) + 0.5).toFixed(3) + 's');
+      else if (prev && prev.style.getPropertyValue('--ld')) dot.style.setProperty('--ld', (parseFloat(prev.style.getPropertyValue('--ld')) + THREAD_GROW).toFixed(3) + 's');
     });
+    // (the threads are revealed from the team upwards: site.css .g-built)
+    if (ordered) svg.querySelectorAll('.g-built').forEach((g) => { g.style.setProperty('--bd', (t0 + PHASE.built).toFixed(3) + 's'); g.style.setProperty('--bt', THREAD_GROW + 's'); });
     pings = [];
     svg.querySelectorAll('.pname, .fade').forEach((el) => {
       const key = (Array.from(el.closest('.grp').classList).find((c) => /^g-/.test(c)) || '').slice(2);
